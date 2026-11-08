@@ -1,0 +1,19 @@
+# Patterns for nanobind's stub generator (python -m nanobind.stubgen -p this file).
+#
+# stubgen treats a name with a single trailing underscore as private and leaves it
+# out of the stub. Two public names end that way because their natural spelling is
+# a Python keyword: SensorClock.None_ and EAInformationBoundOptions.lambda_. The
+# entries below write them out explicitly. A pattern is a regular-expression search
+# on the fully qualified name; the trailing $ stops the second one from also matching
+# lambda_amp.
+
+ballistic._core.SensorClock.None_$:
+    None_ = 0
+    """The time tags are accurate; no clock offset is estimated for this sensor"""
+
+ballistic._core.EAInformationBoundOptions.lambda_$:
+    @property
+    def lambda_(self) -> float:
+        """Prior weight on EA changes between neighboring time points (smoothness; default 1.0)"""
+    @lambda_.setter
+    def lambda_(self, arg: float, /) -> None: ...

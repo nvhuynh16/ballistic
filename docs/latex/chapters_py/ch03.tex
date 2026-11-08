@@ -1,0 +1,21 @@
+An early Sentinel-1 EOF state vector is the initial condition; we propagate
+one hour and RMSE-compare to the EOF truth. The EOF parser and
+\code{compute\_propagation\_result} were \emph{newly bound to Python} for
+this tutorial (they were previously C++-only).
+
+\textbf{ITRF rule.} ESA switched Sentinel POD from ITRF2014 to ITRF2020 on
+4 March 2025; the 2016 data here is \textbf{ITRF2014}.
+
+\examplenote{\code{examples/py/ex03\_sentinel\_propagation.py}}
+\exfile{examples/py/ex03_sentinel_propagation.py}{Python}
+\resultfile{results/ex03_sentinel_rmse.json}{1-hour RMSE vs EOF truth.}
+
+The Python numbers are identical to the C++ chapter (same underlying
+propagator). RK45/ITRF2014 ${\sim}0.18\,$m sits comfortably inside the
+documented sub-meter Sentinel baseline (the January-2026 campaign: $0.54\,$m
+with these bare defaults, $0.24\,$m recommended; this arc improved from
+$0.41\,$m with the 2026-07 epoch-label fix and lost a $13\,\mu$s short
+landing of every one-hour target with the 2026-11 exact \code{Epoch}); the ITRF2014-vs-2020 gap is a few
+mm (real but second-order). Sampling steps the trajectory to build dense
+history --- a single \code{propagate()} leap leaves nothing to
+interpolate.

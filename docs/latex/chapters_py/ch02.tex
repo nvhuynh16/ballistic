@@ -1,0 +1,15 @@
+\code{ballistic.Epoch} mirrors the C++ type. It exposes \code{.tt\_jd},
+\code{.tai\_jd}, \code{.utc\_jd}, \code{.ut1\_jd}, \code{.gps\_jd},
+\code{.tdb\_jd}. Defining offsets are exact ($\mathrm{TT}-\mathrm{TAI}=
+32.184$, $\mathrm{GPS}-\mathrm{TAI}=-19$); UTC trails TAI by the integer
+leap count; \code{Epoch - Epoch} yields seconds.
+
+\examplenote{\code{examples/py/ex02\_timescales.py}}
+\exfile{examples/py/ex02_timescales.py}{Python}
+\resultfile{results/ex02_timescale_offsets.json}{Measured offsets vs TAI.}
+
+\pitfall{$\mathrm{TT}-\mathrm{TAI}$ prints $32.18401\ldots$, not exactly
+$32.18400$: at JD ${\sim}2.46\times10^{6}$ one \code{double} ulp is
+${\sim}4.7\times10^{-5}\,$s. Differencing large Julian Dates cannot recover
+a small offset to better than that --- the offsets are exact by
+definition; do not derive sub-ms differences this way.}

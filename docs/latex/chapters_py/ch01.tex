@@ -1,0 +1,14 @@
+The Pythonic entry point is \code{ballistic.Loader}: it downloads and
+caches the IERS EOP file and \code{leap-seconds.list} (like Skyfield's
+\code{load()}), after which \code{ballistic.initialize()} auto-discovers
+them. Always inspect \code{get\_init\_status()} --- EOP and a fresh
+leap-second file separate meter from sub-meter work (Chapter 9).
+
+\examplenote{\code{examples/py/ex01\_setup.py}}
+\exfile{examples/py/ex01_setup.py}{Python}
+\resultfile{results/ex01_init_status.json}{What initialize() found on this run.}
+
+\pitfall{Unlike C++, Python has \code{Loader}. The only C++/Python
+difference here is the \code{*\_auto\_discovered} flag (Python's
+\code{Loader} loads explicitly; C++ auto-discovers pre-placed files) ---
+the same data loads either way.}

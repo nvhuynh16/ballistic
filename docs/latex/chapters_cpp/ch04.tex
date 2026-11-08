@@ -1,0 +1,31 @@
+The forced ``glide'' reentry (a known empirical acceleration injected on a
+gravity-only baseline) is our EA test bed. Its exact construction is the
+committed \code{glide\_fixture.json}, derived bit-for-bit from the canonical
+internal scenario. With \emph{clean} 100\,Hz observations we recover the EA
+several ways and re-propagate, RMSE vs truth.
+
+Formally, every estimator below solves the regularized nonlinear
+least-squares problem~\eqref{eq:opt} with the B-spline
+parameterization~\eqref{eq:spline}; the knot spacing follows the spline
+bias bound \eqref{eq:knot} (Theorem~\ref{thm:spline},
+\cite{deboor2001}) and the GN refinement is the local
+basin/continuation argument of Proposition~\ref{prop:basin}. See the
+Mathematical Foundations chapter for the full theory.
+
+\examplenote{\code{examples/cpp/ex04\_ea\_clean\_glide.cpp}}
+\exfile{examples/cpp/ex04_ea_clean_glide.cpp}{C++}
+\resultfile{results/ea_clean_glide.csv}{Clean-EA recovery by method.}
+
+\textbf{Read every row against the first one.} The
+\code{no\_ea\_baseline} row is the ``do nothing'' control: propagate the
+glide IC with EA=0 and the trajectory is ${\sim}35\,$km off the truth ---
+that is how much signal the empirical acceleration carries.
+
+The lesson is then \textbf{method selection}. Bare B-spline POS
+\emph{without} GN reprops at ${\sim}1.5\,$m --- already a ${\sim}24000\times$
+improvement on the 35\,km baseline, and GN sharpens it another
+${\sim}200\times$ to a few millimeters. GN is the load-bearing accuracy step
+for position (it is on by default; this row switches it off to expose the
+baseline). On clean 100\,Hz data velocity (${\sim}0.09\,$m) and acceleration
+(${\sim}0.008\,$m) recover sub-meter too; the genuinely hard,
+configuration-sensitive regime is \emph{noisy} data --- see Chapters 5 and 8.

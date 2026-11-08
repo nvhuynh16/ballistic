@@ -1,0 +1,45 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "Ballistic"
+abstract: >-
+  Ballistic is a C++23 orbit propagation library with Python bindings, built
+  for predicting where a satellite will be over the next few hours as
+  precisely as the force models allow and for estimating the accelerations
+  that those models miss.
+authors:
+  - family-names: "Huynh"
+    given-names: "Nen Van"
+version: "0.1.0"
+license: MIT
+repository-code: "https://github.com/nvhuynh16/ballistic"
+keywords:
+  - astrodynamics
+  - orbit propagation
+  - orbit determination
+  - satellite
+references:
+  - type: software
+    title: "NRLMSIS 2.1"
+    authors:
+      - family-names: "Emmert"
+        given-names: "J. T."
+      - name: "et al."
+    notes: >-
+      Embedded. Licensed under the NRL Open Source Academic Research License
+      Agreement NRL-SOF-014-1: non-commercial use only (research, academic
+      and non-profit). See THIRD_PARTY_NOTICES.md.
+  - type: article
+    title: "An update to the Horizontal Wind Model (HWM): The quiet time thermosphere"
+    authors:
+      - family-names: "Drob"
+        given-names: "D. P."
+      - name: "et al."
+    journal: "Earth and Space Science"
+    volume: 2
+    start: 301
+    end: 319
+    year: 2015
+    doi: "10.1002/2014EA000089"
+    notes: >-
+      Horizontal wind model HWM14, included as a U.S. Government work
+      (17 U.S.C. 105) per the project's reading. See THIRD_PARTY_NOTICES.md.

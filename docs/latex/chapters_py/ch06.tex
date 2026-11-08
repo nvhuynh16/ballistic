@@ -1,0 +1,22 @@
+``Ballistic'' is the glide initial state propagated with \emph{no}
+empirical acceleration. Running the same EA estimator on it must not invent
+acceleration. Two regimes:
+
+\begin{enumerate}
+\item \textbf{Clean, default IRGN} --- recovered EA and reprop RMSE
+${\approx}0$ (no hallucination on noise-free null data).
+\item \textbf{Noisy + train-test split} --- 100\,Hz, $\sigma=1.0\,$m,
+hyperparameters chosen by hv-block CV (\code{set\_cv()}) + GN (the
+Chapter~5 deployment config): does CV overfit noise into a phantom EA?
+\end{enumerate}
+
+\examplenote{\code{examples/py/ex06\_ballistic\_recovery.py}}
+\exfile{examples/py/ex06_ballistic_recovery.py}{Python}
+\resultfile{results/ea_ballistic_recovery_py.csv}{Null-data control: clean and noisy+CV.}
+
+Clean returns peak $|\mathrm{EA}|=0$, reprop $=0$ (identical to C++). The
+noisy + hv-block-CV case also stays near zero --- recovered
+$|\mathrm{EA}|\lesssim0.01\,$m/s$^2$, reprop ${\sim}0.1$--$0.2\,$m (exact
+value carries cross-binary CV variance) against the ${\sim}35\,$km
+no-EA baseline (Chapter~4). The train-test split does \textbf{not}
+manufacture spurious acceleration from noise.

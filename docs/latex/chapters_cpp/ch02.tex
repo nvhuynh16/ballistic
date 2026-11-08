@@ -1,0 +1,17 @@
+\code{Epoch} is the one time type. It stores TT internally and converts on
+demand to UTC, UT1, TAI, TDB, GPS. The defining offsets are exact:
+$\mathrm{TT}-\mathrm{TAI}=32.184\,\mathrm{s}$ and
+$\mathrm{GPS}-\mathrm{TAI}=-19\,\mathrm{s}$; UTC trails TAI by the integer
+leap-second count (currently 37 s); UT1 needs EOP. \code{Epoch} subtraction
+yields \emph{seconds}.
+
+\examplenote{\code{examples/cpp/ex02\_timescales.cpp}}
+\exfile{examples/cpp/ex02_timescales.cpp}{C++}
+\resultfile{results/ex02_timescale_offsets.json}{Measured offsets vs TAI.}
+
+\pitfall{Note the printed $\mathrm{TT}-\mathrm{TAI}=32.18401\ldots$ --- not
+exactly $32.18400$. At a Julian Date of ${\sim}2.46\times10^{6}$ one
+\code{double} ulp is ${\sim}4.7\times10^{-5}\,$s, so \emph{differencing
+large JDs} cannot recover a small offset to better than that. The offsets
+are exact by definition; never derive sub-millisecond time differences by
+subtracting raw Julian Dates.}

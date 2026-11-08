@@ -1,0 +1,14 @@
+Every \Ballistic{} program begins with \code{ballistic::initialize(\{\})}.
+It loads the embedded EGM2008 gravity field and DE440 ephemeris, and
+\emph{auto-discovers} the IERS Earth-orientation file
+(\code{finals2000A.data}) and \code{leap-seconds.list} from the platform
+data directory if they are present. The returned \code{InitResult} reports
+exactly what loaded --- always inspect it.
+
+\examplenote{\code{examples/cpp/ex01\_setup.cpp}}
+\exfile{examples/cpp/ex01_setup.cpp}{C++}
+\resultfile{results/ex01_init_status.json}{What initialize() found on this run.}
+
+\pitfall{C++ has no \code{Loader} (that is a Python convenience). Ensure the
+EOP and leap-second files are present in the data directory; without EOP,
+LEO transforms degrade by meters (Chapter 9).}

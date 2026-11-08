@@ -1,0 +1,28 @@
+Three setup mistakes that silently cost accuracy, made concrete.
+
+\examplenote{\code{examples/py/ex09\_pitfalls.py}}
+\exfile{examples/py/ex09_pitfalls.py}{Python}
+\resultfile{results/ex09_pitfalls_py.json}{Measured pitfall deltas + status.}
+
+\begin{enumerate}
+\item \textbf{Wrong ITRF realization} --- a measured ${\sim}7\,$mm LEO
+divergence over one hour (ITRF2014 vs ITRF2020). Real but second-order;
+match your reference data's realization.
+\item \textbf{Missing EOP} --- check
+\code{get\_init\_status().eop\_loaded}. Without it UT1$-$UTC defaults to 0
+$\Rightarrow$ ${\sim}3\,$m LEO error. Run \code{Loader().load\_eop()}.
+\item \textbf{Stale leap seconds} --- embedded coverage ends 2025;
+querying later dates without a refreshed file gives seconds of TAI/UTC
+error $\Rightarrow$ kilometers of position.
+\end{enumerate}
+
+\pitfall{Forces are presence-as-switch, identical in both languages: SRP
+and drag default \emph{OFF}, and \code{srp=SrpConfig(...)} /
+\code{drag\_env=...} turn them on (the old \code{enable\_srp} flag --- and
+its C++/Python default divergence --- is gone). They default off only
+because they need the satellite's mass, areas and (for drag) space weather
+--- \emph{not} because a POE/SP3 reference ``already includes'' them: the
+reference fixes only the start state, the forces after it must still be
+modeled. Turning them on lowers 1-hour RMSE for every 2025 Sentinel (SRP
+${\sim}{-}28\%$; drag $-17\%$ at 700\,km); \code{recommended\_config()}
+does both in one call.}

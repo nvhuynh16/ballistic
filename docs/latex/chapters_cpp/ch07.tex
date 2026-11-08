@@ -1,0 +1,27 @@
+Two ground radars track the forced glide. We synthesize clean
+[range, az, el, range-rate] observations from the truth trajectory via
+\code{RadarObs::predict}, fuse them with \code{estimate\_ea\_smoother}
+(the recommended fusion path --- a \textbf{GM-RTS reduced-dynamic
+smoother}: an EKF forward pass and a Rauch--Tung--Striebel backward pass
+over a Gauss--Markov empirical-acceleration state, with an NIS-selected
+prior and a measured range-rate budget), and re-propagate. A second case
+then adds a $50\,\mu$rad astrometric camera (\code{OpticsObs}, az/el
+bearings only) co-located with radar 0 --- the same smoother fuses the
+extra modality with no configuration change.
+
+\examplenote{\code{examples/cpp/ex07\_multisensor.cpp}}
+\exfile{examples/cpp/ex07_multisensor.cpp}{C++}
+\resultfile{results/multisensor_rmse.csv}{2-radar fused EA, then 2-radar
++ camera, reprop vs truth.}
+
+\pitfall{Radar\,$\rightarrow$\,EA is \emph{observability-limited}: the
+information limit for this 2-radar geometry is ${\sim}9\text{--}17\,$m, so
+the ${\sim}6\,$m radar-only reprop is at the geometry floor, not estimator
+error --- and the remedy is more \emph{information}, not more tuning. Two
+extra angle channels from the $50\,\mu$rad camera drop the reprop
+${\sim}20\times$ to ${\sim}0.3\,$m. The truth-free \code{nis} ($1$ ideal,
+${<}1$ conservative --- here ${\sim}0.06$--$0.08$ on clean synthetic data)
+is the noise-model health check. The smoother is deterministic, so the C++
+and Python numbers agree exactly. Single-radar with range-rate on is
+degenerate --- use $\ge 2$ radars, and add a camera/fix when the geometry
+floor is not good enough.}

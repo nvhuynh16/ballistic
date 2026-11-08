@@ -1,0 +1,93 @@
+[build-system]
+# Bounded: cmake.version (below) needs scikit-build-core >= 0.8, and newer
+# backends have broken this configuration before, so upgrades are explicit.
+requires = ["scikit-build-core>=0.8,<0.12", "nanobind>=2.0,<3"]
+build-backend = "scikit_build_core.build"
+
+[project]
+# The distribution is published as ballistic-orbit; the import name stays
+# `ballistic` (the package directory below).
+name = "ballistic-orbit"
+version = "0.1.0"
+description = "High-fidelity orbital trajectory prediction library"
+readme = "README.md"
+# The wheel contains no NRL code: NRLMSIS 2.1 (non-commercial, NRL-SOF-014-1)
+# and HWM14 are the separate plugin that ballistic.install_nrl_models()
+# downloads (THIRD_PARTY_NOTICES.md).
+license = {text = "MIT"}
+# Built and tested on CPython 3.12 (the nanobind module is tagged per-version;
+# this repo pins 3.12 via .python-version).
+requires-python = ">=3.12"
+authors = [
+    {name = "Nen Huynh", email = "nvhuynh16@gmail.com"}
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Astronomy",
+    "Topic :: Scientific/Engineering :: Physics",
+]
+keywords = ["orbital", "mechanics", "trajectory", "propagation", "satellite", "astrodynamics"]
+dependencies = [
+    "numpy>=1.20",
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest>=7.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/nvhuynh16/ballistic"
+Repository = "https://github.com/nvhuynh16/ballistic"
+Issues = "https://github.com/nvhuynh16/ballistic/issues"
+
+[tool.scikit-build]
+cmake.version = ">=3.20"
+# THIRD_PARTY_NOTICES.md lists the embedded data and the separate NRL plugin.
+wheel.license-files = ["../LICENSE", "../THIRD_PARTY_NOTICES.md"]
+cmake.build-type = "Release"
+wheel.packages = ["ballistic"]
+wheel.install-dir = "ballistic"
+
+# Build from the root directory to include the main ballistic library
+cmake.source-dir = ".."
+
+[tool.scikit-build.cmake.define]
+BALLISTIC_BUILD_PYTHON = "ON"
+BALLISTIC_BUILD_TESTS = "OFF"
+BALLISTIC_BUILD_EXAMPLES = "OFF"
+# Wheels must be portable: never native-CPU codegen under a manylinux tag
+# (SIGILL on older machines).
+BALLISTIC_NATIVE_ARCH = "OFF"
+
+# Binary wheels (.github/workflows/wheels.yml). One CPython (the nanobind
+# module is tagged per version and the package requires 3.12+); 64-bit
+# glibc, Windows and macOS only.
+[tool.cibuildwheel]
+build = "cp312-*"
+skip = "*-musllinux_* *_i686 *-win32"
+manylinux-x86_64-image = "manylinux_2_28"
+test-requires = ["pytest", "numpy", "sgp4"]
+# Each wheel, installed in a fresh environment: the installation check
+# (doctor, with its SGP4 and Sentinel-1A self-tests) and the README quick
+# start. Both tests build their own data directory from the committed
+# tests/data files (conftest.py; XDG_DATA_HOME or LOCALAPPDATA), so no data
+# path is passed here; downloads are forbidden by BALLISTIC_OFFLINE below.
+test-command = "pytest {project}/tests/python/test_doctor.py {project}/tests/python/test_quickstart.py -q -rs"
+environment = { BALLISTIC_OFFLINE = "1" }
+
+[tool.cibuildwheel.linux]
+# The sources need GCC 13+; the manylinux_2_28 image's default toolset can
+# be older, so install and select gcc-toolset-13 explicitly (its libstdc++
+# keeps the manylinux_2_28 symbol baseline).
+before-all = "dnf install -y gcc-toolset-13-gcc-c++"
+environment = { BALLISTIC_OFFLINE = "1", CC = "/opt/rh/gcc-toolset-13/root/usr/bin/gcc", CXX = "/opt/rh/gcc-toolset-13/root/usr/bin/g++" }
+
+[tool.cibuildwheel.macos]
+environment = { MACOSX_DEPLOYMENT_TARGET = "11.0", BALLISTIC_OFFLINE = "1" }
+
+[tool.cibuildwheel.windows]
+environment = { PYTHONUTF8 = "1", BALLISTIC_OFFLINE = "1" }

@@ -1,0 +1,25 @@
+Before trusting an estimator on forced data, prove it does not invent
+acceleration where there is none. ``Ballistic'' is the glide initial state
+propagated with \emph{no} empirical acceleration (gravity only). We run the
+same EA estimator on it under two regimes:
+
+\begin{enumerate}
+\item \textbf{Clean, default IRGN} --- recovered EA and reprop RMSE must be
+${\approx}0$ (no hallucination on noise-free null data).
+\item \textbf{Noisy + train-test split} --- 100\,Hz, $\sigma=1.0\,$m, with
+hyperparameters chosen by hv-block cross-validation (\code{ea::CV\{\}}) plus
+GN, exactly the Chapter~5 deployment config. The question: does CV
+\emph{overfit the noise} into a phantom EA when there is no real signal?
+\end{enumerate}
+
+\examplenote{\code{examples/cpp/ex06\_ballistic\_recovery.cpp}}
+\exfile{examples/cpp/ex06_ballistic_recovery.cpp}{C++}
+\resultfile{results/ea_ballistic_recovery.csv}{Null-data control: clean and noisy+CV.}
+
+Clean returns peak $|\mathrm{EA}|=0$, reprop $=0$. The noisy + hv-block-CV
+case stays near zero too --- recovered $|\mathrm{EA}|\lesssim0.01\,$m/s$^2$
+(noise-induced, negligible) and reprop ${\sim}0.1$--$0.2\,$m (the exact
+value carries the documented cross-binary CV variance), against a
+${\sim}35\,$km no-EA baseline (Chapter~4). The train-test split does
+\textbf{not} manufacture spurious acceleration from noise: this is the
+control that licenses every forced-data result in this tutorial.

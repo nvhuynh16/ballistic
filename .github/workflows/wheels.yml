@@ -1,0 +1,190 @@
+# Binary wheels for Linux (manylinux_2_28 x86_64), Windows (AMD64) and macOS
+# (arm64, x86_64), built with cibuildwheel on version tags or by hand. The
+# build and test settings live in python/pyproject.toml [tool.cibuildwheel];
+# each wheel is installed into a fresh environment and runs the installation
+# check (ballistic doctor, through tests/python/test_doctor.py) and the README
+# quick start offline before it is uploaded.
+#
+# No sdist: python/pyproject.toml builds with cmake.source-dir = "..", so
+# the Python project is a subdirectory of the CMake project, and an sdist of
+# python/ alone would not contain the C++ sources it needs. Source installs
+# go through the git URL (README "Installation"), which checks out the whole
+# repository.
+#
+# The wheels contain no NRL code. NRLMSIS 2.1 (non-commercial license,
+# NRL-SOF-014-1) and HWM14 are the separate plugin ballistic_nrl, built here
+# for the same four platforms; on a tag push the plugins, their license and a
+# SHA256SUMS file are attached to a DRAFT GitHub release for the tag.
+# ballistic.install_nrl_models() downloads from that release once it is
+# published (python/ballistic/nrl.py, asset names ballistic_nrl-<os>-<arch>).
+#
+# Publishing: only on a manual run with `publish` ticked, never on a tag
+# push, so a tag can be built and inspected first. The PyPI project is
+# ballistic-orbit (import name `ballistic`), and trusted publishing (this repository, workflow
+# wheels.yml, environment `pypi`) must be registered on PyPI by hand before
+# the publish job can succeed (CHANGELOG release checklist).
+
+name: Wheels
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: "Upload the built wheels to PyPI"
+        type: boolean
+        default: false
+
+jobs:
+  build_wheels:
+    name: wheel ${{ matrix.os }} (${{ matrix.arch }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04      # manylinux_2_28 (pyproject.toml)
+            arch: x86_64
+          - os: windows-2022
+            arch: AMD64
+          - os: macos-14          # Apple silicon
+            arch: arm64
+          - os: macos-15-intel    # Intel macOS runner (macos-13 is retired)
+            arch: x86_64
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pypa/cibuildwheel@v2.21.3
+        with:
+          package-dir: python
+          output-dir: wheelhouse
+        env:
+          CIBW_ARCHS: ${{ matrix.arch }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wheels-${{ matrix.os }}-${{ matrix.arch }}
+          path: wheelhouse/*.whl
+          if-no-files-found: error
+
+  # The NRL models plugin, one per wheel platform. Linux builds inside the
+  # manylinux_2_28 image with gcc-toolset-13, like the wheel, so the plugin
+  # loads on the same systems. scripts/check_nrl_plugin.py loads each file
+  # without the library and calls both models once.
+  build_nrl_plugin:
+    name: NRL plugin ${{ matrix.asset }}
+    runs-on: ${{ matrix.os }}
+    container: ${{ matrix.container }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            container: quay.io/pypa/manylinux_2_28_x86_64
+            asset: ballistic_nrl-linux-x86_64.so
+            file: build/nrl/ballistic_nrl.so
+          - os: windows-2022
+            container: ''
+            asset: ballistic_nrl-windows-x86_64.dll
+            file: build/nrl/ballistic_nrl.dll
+          - os: macos-14
+            container: ''
+            asset: ballistic_nrl-macos-arm64.dylib
+            file: build/nrl/ballistic_nrl.dylib
+          - os: macos-15-intel
+            container: ''
+            asset: ballistic_nrl-macos-x86_64.dylib
+            file: build/nrl/ballistic_nrl.dylib
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        if: matrix.container == ''
+        with:
+          python-version: "3.12"
+
+      - name: Toolchain (manylinux)
+        if: matrix.container != ''
+        run: |
+          dnf install -y gcc-toolset-13-gcc-c++
+          echo "CC=/opt/rh/gcc-toolset-13/root/usr/bin/gcc" >> "$GITHUB_ENV"
+          echo "CXX=/opt/rh/gcc-toolset-13/root/usr/bin/g++" >> "$GITHUB_ENV"
+          echo "/opt/python/cp312-cp312/bin" >> "$GITHUB_PATH"
+
+      - name: Build
+        shell: bash
+        run: |
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DBALLISTIC_BUILD_TESTS=OFF \
+            -DBALLISTIC_BUILD_EXAMPLES=OFF -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0
+          cmake --build build --config Release --target ballistic_nrl
+          mkdir -p nrl-dist
+          cp "${{ matrix.file }}" "nrl-dist/${{ matrix.asset }}"
+
+      - name: Load and call it
+        shell: bash
+        run: python scripts/check_nrl_plugin.py "nrl-dist/${{ matrix.asset }}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nrl-${{ matrix.asset }}
+          path: nrl-dist/${{ matrix.asset }}
+          if-no-files-found: error
+
+  # A tag push attaches the plugins to a draft release for the tag; review
+  # and publish it on GitHub (install_nrl_models cannot see a draft).
+  nrl_release:
+    needs: build_nrl_plugin
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: nrl-*
+          path: release
+          merge-multiple: true
+
+      - name: Checksums and license
+        run: |
+          cd release
+          sha256sum ballistic_nrl-* > SHA256SUMS
+          cat SHA256SUMS
+          cp ../docs/licenses/nrlmsis2.1_license.txt ../THIRD_PARTY_NOTICES.md .
+
+      - name: Draft release with the plugins
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="${GITHUB_REF_NAME}"
+          notes="NRLMSIS 2.1 / HWM14 plugin for ballistic ${tag} (install with ballistic.install_nrl_models(accept_license=True)). NRLMSIS 2.1 is licensed for research, academic and non-profit use only (NRL-SOF-014-1, nrlmsis2.1_license.txt)."
+          if gh release view "$tag" > /dev/null 2>&1; then
+            gh release upload "$tag" release/* --clobber
+          else
+            gh release create "$tag" release/* --draft --title "$tag" --notes "$notes"
+          fi
+
+  publish:
+    needs: build_wheels
+    if: github.event_name == 'workflow_dispatch' && inputs.publish
+    runs-on: ubuntu-24.04
+    environment: pypi
+    permissions:
+      id-token: write       # trusted publishing; no API token is stored
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: wheels-*
+          path: dist
+          merge-multiple: true
+
+      # Register the trusted publisher for the PyPI project ballistic-orbit
+      # before the first run with `publish` ticked.
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist

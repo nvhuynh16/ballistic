@@ -1,0 +1,107 @@
+# Build directories (build/, build-asan/, build-debug/, etc.)
+build/
+build-*/
+cmake-build-*/
+out/
+
+# Scratch outputs at repo root (CSV/txt/log dumps from running diagnostics).
+# The leading slash anchors to the project root so subdirectory data files
+# (e.g. tests/data/...) are not affected.
+/*.csv
+/*.txt
+/*.log
+
+# Python (uv) virtual environment
+.venv/
+*.egg-info/
+
+# IDE
+.vs/
+.vscode/
+*.user
+*.suo
+*.sln
+*.vcxproj*
+
+# Compiled
+*.o
+*.obj
+*.exe
+*.dll
+*.lib
+*.a
+*.so
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+
+# Package managers
+vcpkg_installed/
+
+# Temp files
+tmpclaude-*
+nul
+.claude/
+
+# Large ephemeris files (download from NASA NAIF)
+data/de421.bsp
+data/de440.bsp
+data/de441.bsp
+data/*.bin
+
+# Large gravity model files (download from NGA)
+data/EGM2008_*/
+data/egm2008-1/
+
+# Large test data files
+tests/Sentinel1_old/
+tests/data/accelerometer/
+tests/data/eof/*
+!tests/data/eof/README.md
+tests/data/sp3/**/*.sp3
+tests/data/sp3/**/*.SP3
+tests/data/sp3/**/*.gz
+tests/data/sp3/**/*.Z
+# Minimal committed fixtures so the data-backed gates run on a clean checkout.
+!tests/data/sp3/champ/CHAMP_2005_182.sp3
+!tests/data/sp3/grace_fo/GFZOP_RSO_L64_G_20260101_100000_20260102_000000_v03.sp3
+!tests/data/sp3/qzss/*.SP3
+!tests/data/sp3/gps/COD0OPSFIN_20240150000_01D_05M_ORB.SP3
+!tests/data/sp3/gps/COD0OPSFIN_20240160000_01D_05M_ORB.SP3.gz
+!tests/data/sp3/gps/COD0OPSFIN_20240170000_01D_05M_ORB.SP3.gz
+!tests/data/sp3/gps/COD0OPSFIN_20240180000_01D_05M_ORB.SP3.gz
+# GOCE density: the one-day slice is committed; the month and deorbit files are downloaded
+# (scripts/download_goce_density.py).
+tests/data/goce_density/*.txt
+!tests/data/goce_density/goce_denswind_ac082_v2_0_2013-10-15.txt
+
+# Validation outputs
+*.h5
+*.png
+
+# Build artifacts
+build_out.txt
+build_python/
+Testing/
+__pycache__/
+*.pyd
+
+# External reference implementations & provenance inputs (not for
+# distribution; see docs/third_party_provenance.md for what lives here)
+external/
+
+# Data directory (large ephemeris/gravity files)
+/data/
+
+# LaTeX build artifacts (docs/latex) — sources + build.sh + README are tracked
+docs/latex/*.pdf
+docs/latex/*.aux
+docs/latex/*.log
+docs/latex/*.out
+docs/latex/*.toc
+docs/latex/*.synctex.gz
+docs/latex/*.fls
+docs/latex/*.fdb_latexmk

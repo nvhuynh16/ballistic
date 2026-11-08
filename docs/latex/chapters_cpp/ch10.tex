@@ -1,0 +1,61 @@
+Every listing in this tutorial is a committed program that was compiled
+and executed; every number is its real output (no hand-typed values). This
+chapter records the discrepancies found \emph{by running} and how each was
+resolved --- the requested self-review.
+
+\begin{description}
+\item[Glide fixture parity] The generator was verified bit-for-bit against
+the canonical internal scenario (\code{eval\_end} identical to 17 digits),
+so C++ and Python share an identical glide.
+\item[Ballistic-impact overshoot] The adaptive integrator overshot ground
+by ${\sim}10\,$km; fixed with a previous-step-anchored bisection
+(${\approx}0\,$m).
+\item[Time-scale offset] $\mathrm{TT}-\mathrm{TAI}$ printed
+$32.18401\ldots$; investigated as sub-ulp JD-differencing cancellation
+(not a bug) and kept as the Chapter 2 pitfall.
+\item[Python sampling] A single \code{propagate()} leap leaves no history
+to interpolate; switched to a step loop mirroring the C++ exactly.
+\item[ex09 crash] A \code{TrajectoryInterpolator} outliving its
+\code{Trajectory} segfaulted; fixed (Chapter 9 pitfall).
+\item[GN is load-bearing] Bare B-spline POS without GN reprops at
+${\sim}189\,$m (C++==Python). Documented; the chapters recommend GN.
+\emph{2026-07 update:} after the epoch-label/interpolation fix and the
+arc-length auto-clamp, the same no-GN row measures ${\sim}1.3\,$m --- GN
+remains the load-bearing step, sharpening it to millimeters, and GN is now
+default-ON for POS and VEL alike.
+\item[Multi-sensor / noisy VEL-ACC variance] Investigated and attributed
+to documented basin/observability sensitivity and cross-binary FP
+variance, annotated rather than hidden.
+\item[Missing no-EA control] Review question: ``is there an EA=0 baseline
+for glide data?'' There was not. Added \code{ea0\_baseline\_rmse} and a
+\code{no\_ea\_baseline} row to ex04: EA=0 on the forced glide is
+${\sim}36049\,$m (C++==Python; 35316\,m since the 2026-11 fixture). Without it the recovered-EA numbers had no
+reference scale (e.g.\ ``189\,m'' reads as failure, but is ${\sim}190\times$
+better than nothing). Prose in Chapters 4/5/8 now frames every RMSE
+against it.
+\item[Noisy null control] Review question: ``noisy with EA=0, RMSE with
+train-test split for parameters?'' Untested. Measured and added to ex06:
+noisy ($\sigma{=}1\,$m, 100\,Hz) ballistic data through hv-block CV + GN
+gives reprop ${\sim}0.2$--$0.3\,$m, peak $|\mathrm{EA}|\lesssim0.1\,$m/s$^2$
+--- the train-test split does not overfit noise into a phantom EA. ex06
+moved to the heavy regen group accordingly.
+\item[Non-hermetic leap tests] Running the \emph{recommended}
+\code{Loader().timescale()} (Chapter 1) caches \code{leap-seconds.list}
+into the platform data dir, after which two project leap-second unit
+tests (which assert the embedded-only state) fail. Confirmed
+environment-only (not the new binding); the data dir was restored and the
+suite is green. Flagged as a latent project test-hermeticity bug
+(use \code{XDG\_DATA\_HOME} for hermetic fixtures) --- a separate
+follow-up, out of this tutorial's scope. \emph{Since fixed}:
+the project's pytest suite now runs under a session
+\code{XDG\_DATA\_HOME} fixture, so the recommended \code{Loader} path no
+longer perturbs any test.
+\end{description}
+
+The EOF parser + RMSE path was newly bound to Python for this tutorial
+(regression test \code{tests/python/test\_validation\_eof.py}; suite green
+at the time of writing and since). The C++/Python \code{enable\_srp}
+default divergence flagged in the first edition has \emph{since been
+resolved}: forces are presence-as-switch (\code{srp = SrpConfig\{...\}},
+\code{drag\_env}), defaulting OFF in both languages; the examples still
+set forces explicitly.

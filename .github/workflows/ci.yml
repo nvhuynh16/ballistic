@@ -1,0 +1,496 @@
+# Jobs: Linux GCC (build-test + wheel-and-pytest, the reference gate),
+# Linux clang, Linux without the NRL models plugin, Windows MSVC; nightly
+# heavy tier. The NRL models (NRLMSIS 2.1, HWM14) are never in the library or
+# the wheel: they are the plugin ballistic_nrl (CMake target), built next to
+# the tests, and found by tests/python/conftest.py in build/nrl/.
+# macOS is covered only by the tag-triggered wheel build (wheels.yml). Every
+# compiler but GCC is a first test of portable code, so each job prints
+# build/toolchain_info.txt and runs ctest with --output-on-failure. The
+# heavy tier is excluded by label (the heavy ctest tier alone takes ~25
+# minutes). Every run is a clean build, so a stale binary can never make a
+# test look green.
+#
+# Dependencies: Eigen comes from apt (libeigen3-dev) on Linux and from
+# FetchContent on Windows; nanobind always from FetchContent at the tag
+# pinned in python/CMakeLists.txt; zlib (test-only, for .gz fixtures) from
+# the system or FetchContent.
+#
+# The pytest suite runs against the INSTALLED WHEEL, not the source tree, so
+# the shipped artifact is what gets tested. The skip-census step is
+# load-bearing: several tests skip when large uncommitted data is absent, and
+# without a census a green run could mean "tested nothing". Heavy tiers
+# (BALLISTIC_HEAVY pytest + the heavy ctest label) run nightly, not on PRs.
+#
+# BALLISTIC_REQUIRE_TEST_DATA is NOT set in CI: the public checkout lacks
+# the uncommitted products (Sentinel precise orbits and others), so their
+# cells must be reported as skips here; the variable is for a machine that
+# has the data (CONTRIBUTING.md).
+
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    - cron: "17 4 * * *"      # nightly heavy tier
+  workflow_dispatch:
+
+jobs:
+  build-test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y libeigen3-dev
+
+      - name: Configure
+        run: >
+          cmake -S . -B build
+          -DCMAKE_BUILD_TYPE=Release
+          -DBALLISTIC_NATIVE_ARCH=OFF
+
+      - name: Build
+        run: cmake --build build -j$(nproc)
+
+      - name: Toolchain record
+        run: cat build/toolchain_info.txt
+
+      - name: Default test gate (excludes the heavy tier)
+        run: >
+          ctest --test-dir build -LE heavy
+          --timeout 2400 -j$(nproc) --output-on-failure
+
+      # Every library warning is an error here, so a unit test
+      # that starts triggering one fails. Tests that exercise warnings on
+      # purpose carry the `warns` label (tests/CMakeLists.txt).
+      - name: Strict-mode unit tests
+        env:
+          BALLISTIC_STRICT_WARNINGS: "1"
+        run: ctest --test-dir build -L unit -LE warns --timeout 600 -j$(nproc) --output-on-failure
+
+      # The examples are what a new user runs first, so they must run, not
+      # just compile (an example that forgot initialize() once aborted
+      # unnoticed). They get the committed Earth orientation and
+      # space-weather files.
+      - name: Run the C++ examples
+        run: |
+          mkdir -p "$RUNNER_TEMP/xdg/ballistic"
+          cp tests/data/eop/finals2000A.all tests/data/weather/SW-All.csv "$RUNNER_TEMP/xdg/ballistic/"
+          for ex in orbit_propagation sentinel_prediction; do
+            XDG_DATA_HOME="$RUNNER_TEMP/xdg" timeout 300 build/examples/$ex
+          done
+
+  wheel-and-pytest:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Build wheel
+        run: |
+          python -m pip install build
+          python -m build --wheel python/ --outdir dist/
+
+      # The NRL models plugin for the tests marked `nrl` (conftest.py finds it
+      # in build/nrl/); it is not part of the wheel.
+      - name: Build the NRL models plugin
+        run: |
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DBALLISTIC_BUILD_TESTS=OFF \
+            -DBALLISTIC_BUILD_EXAMPLES=OFF
+          cmake --build build --target ballistic_nrl -j$(nproc)
+
+      - name: Wheel must not leak the C++ SDK
+        run: |
+          python - <<'EOF'
+          import glob, sys, zipfile
+          wheel = glob.glob("dist/*.whl")[0]
+          names = zipfile.ZipFile(wheel).namelist()
+          leaks = [n for n in names if n.endswith((".hpp", ".a")) or "/Release/" in n]
+          if leaks:
+              print("C++ SDK leaked into wheel:", leaks[:20])
+              sys.exit(1)
+          # The NRL models (non-commercial license) are a separate plugin.
+          nrl = [n for n in names if "ballistic_nrl" in n or "nrlmsis" in n.lower()
+                 or "hwm14" in n.lower()]
+          if nrl:
+              print("NRL model files in the wheel:", nrl); sys.exit(1)
+          # Exactly one compiled module, built for this interpreter and
+          # platform: a stale module from another Python or platform, or a
+          # per-configuration subdirectory, fails here.
+          import posixpath, sysconfig
+          want = "ballistic/_core" + sysconfig.get_config_var("EXT_SUFFIX")
+          modules = [n for n in names if posixpath.basename(n).startswith("_core.")
+                     and not n.endswith(".pyi")]
+          if modules != [want]:
+              print(f"wheel must contain exactly {want}; it has {modules}")
+              sys.exit(1)
+          import os
+          size_mb = os.path.getsize(wheel) / 1e6
+          # Positive check: the cited-properties single source must ship,
+          # or library users silently lose it.
+          if not any(n.endswith("ballistic/satellite_properties.py") for n in names):
+              print("satellite_properties.py missing from wheel"); sys.exit(1)
+          # Type stubs: IDE users must see gcrs_to_itrf,
+          # check_velocity_records, the error classes... (PEP 561).
+          for need in ("ballistic/_core.pyi", "ballistic/py.typed"):
+              if not any(n.endswith(need) for n in names):
+                  print(f"{need} missing from wheel"); sys.exit(1)
+          print(f"wheel OK: {wheel} ({size_mb:.1f} MB, {len(names)} entries)")
+          if size_mb > 25:
+              print("wheel unexpectedly large (>25 MB)")
+              sys.exit(1)
+          EOF
+
+      - name: Import smoke test (isolated)
+        run: |
+          python -m pip install dist/*.whl numpy
+          python -c "import ballistic; r = ballistic.initialize(); print(repr(r)); assert r.success"
+
+      # The committed _core.pyi must be what nanobind generates from the
+      # built module (pinned to the nanobind the build uses), so a binding
+      # can never ship without its stub. Regenerate locally with:
+      #   PYTHONPATH=./python uv run --with numpy --with nanobind==2.4.0 \
+      #     python -m nanobind.stubgen -m ballistic._core -p python/stub_patterns.txt \
+      #       -o python/ballistic/_core.pyi -q
+      - name: Type stub matches the built module
+        run: |
+          python -m pip install "nanobind==2.4.0"
+          python -m nanobind.stubgen -m ballistic._core -p python/stub_patterns.txt -o /tmp/_core.pyi -q
+          diff -u python/ballistic/_core.pyi /tmp/_core.pyi
+
+      # Runs from the repo root WITHOUT PYTHONPATH, so `import ballistic`
+      # resolves to the installed wheel rather than python/ballistic — this
+      # tests the shipped artifact. pandas/h5py are deliberately omitted:
+      # the only test needing them (T3) is heavy-gated and importorskips.
+      # Strict: every ballistic warning is an error, so a new
+      # library note firing where it should not fails CI instead of
+      # scrolling past. Tests that expect a warning use pytest.warns.
+      - name: pytest (default tier, installed wheel)
+        env:
+          BALLISTIC_STRICT_WARNINGS: "1"
+        run: |
+          # pipefail: without it the pipeline's status is tee's, so a pytest
+          # FAILURE would pass the step silently (the exact class of bug the
+          # skip census below exists to catch).
+          set -o pipefail
+          # sgp4: the MIT oracle + SGP4-VER vectors for tests/python/test_sgp4.py;
+          # test-time only, never shipped (the library's SGP4 is clean-room).
+          python -m pip install pytest sgp4
+          timeout 1200 python -m pytest tests/python -q -rs | tee pytest.log
+
+      # The installation check and the tutorial examples that
+      # need only committed data (ex03 needs untracked Sentinel 2016 orbits;
+      # ex04-ex07 are minutes-long estimator runs, built nightly in C++).
+      - name: ballistic doctor and the quick tutorial examples (installed wheel)
+        run: |
+          mkdir -p "$RUNNER_TEMP/xdg/ballistic"
+          cp tests/data/eop/finals2000A.all tests/data/weather/SW-All.csv "$RUNNER_TEMP/xdg/ballistic/"
+          export XDG_DATA_HOME="$RUNNER_TEMP/xdg" BALLISTIC_OFFLINE=1
+          python -m ballistic doctor
+          for ex in ex01_setup ex02_timescales ex09_pitfalls; do
+            timeout 600 python docs/latex/examples/py/$ex.py
+          done
+
+      # A green run that skipped everything is the failure mode this step
+      # exists to catch (several tests skip on absent uncommitted data).
+      - name: Skip-census guard
+        run: |
+          python - <<'EOF'
+          import re, sys
+          log = open("pytest.log").read()
+          m = re.search(r"(\d+) passed(?:, (\d+) skipped)?", log)
+          if not m:
+              print("could not parse pytest summary"); sys.exit(1)
+          passed, skipped = int(m.group(1)), int(m.group(2) or 0)
+          print(f"census: {passed} passed, {skipped} skipped")
+          # Expected skips on a clean public checkout with no heavy env (15):
+          #   1  test_champ_drag_gate: BALLISTIC_HEAVY unset (nightly job runs it)
+          #   1  test_goce_density_truth full month: heavy, and the month file
+          #      is not committed (only a one-day slice is)
+          #   1  test_recommended_config: Sentinel Jan-2026 EOF orbits not committed
+          #   3  test_validation_eof: Sentinel-1 2016 EOF orbits not committed
+          #   3  test_velocity_records: GRACE-FO SP3 files of 2 January 2026 not committed
+          #   1  test_velocity_records: ILRS LAGEOS-1 SP3 not committed
+          #   1  test_sp3_reader::test_utc_file_is_utc: ILRS LAGEOS file not committed
+          #   3  test_sp3_reader (gzip/plain, clock into z, campaign starts):
+          #      their SP3 files are not committed (require_data)
+          #   1  test_validation_claims::test_commit_column_names_real_objects:
+          #      the Commit column names development-history commits
+          # Each data skip's reason names how to reacquire the data. Raise
+          # MAX_SKIPS only together with this list.
+          MAX_SKIPS, MIN_PASSED = 15, 400
+          if skipped > MAX_SKIPS:
+              print(f"too many skips ({skipped} > {MAX_SKIPS}) — data or env "
+                    "regression is silently disabling coverage"); sys.exit(1)
+          if passed < MIN_PASSED:
+              print(f"too few passing ({passed} < {MIN_PASSED})"); sys.exit(1)
+          EOF
+
+  # Second compiler on Linux. The whole default gate runs, not only the unit
+  # label: the validation and estimator gates are where a different
+  # compiler's floating-point codegen would show (several gates pin
+  # measured values), and that is what this job exists to find.
+  clang:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 150
+    env:
+      CC: clang-18
+      CXX: clang++-18
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y clang-18 libomp-18-dev libeigen3-dev
+
+      - name: Configure
+        run: >
+          cmake -S . -B build
+          -DCMAKE_BUILD_TYPE=Release
+          -DBALLISTIC_NATIVE_ARCH=OFF
+
+      - name: Build
+        run: cmake --build build -j$(nproc)
+
+      - name: Toolchain record
+        run: cat build/toolchain_info.txt
+
+      - name: Default test gate (excludes the heavy tier)
+        run: >
+          ctest --test-dir build -LE heavy
+          --timeout 2400 -j$(nproc) --output-on-failure
+
+  # Without the NRL models plugin, as a fresh installation is: the plugin is
+  # not built, tests that need it (ctest label `nrl`, pytest marker `nrl`) are
+  # left out, and the rest must pass.
+  linux-no-nrl:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y libeigen3-dev
+
+      - name: Configure
+        run: >
+          cmake -S . -B build
+          -DCMAKE_BUILD_TYPE=Release
+          -DBALLISTIC_NATIVE_ARCH=OFF
+          -DBALLISTIC_BUILD_NRL_PLUGIN=OFF
+          -DBALLISTIC_BUILD_PYTHON=ON
+
+      - name: Build
+        run: cmake --build build -j$(nproc)
+
+      - name: Toolchain record
+        run: cat build/toolchain_info.txt
+
+      - name: Default test gate without the NRL tests
+        run: >
+          ctest --test-dir build -LE 'heavy|nrl'
+          --timeout 2400 -j$(nproc) --output-on-failure
+
+      - name: Build and install the wheel
+        run: |
+          python -m pip install build
+          python -m build --wheel python/ --outdir dist/
+          python -m pip install dist/*.whl numpy pytest sgp4
+
+      - name: The installed package has no NRL models
+        run: python -c "import ballistic; assert not ballistic.nrl_models().installed"
+
+      - name: pytest without the NRL tests (installed wheel)
+        env:
+          BALLISTIC_STRICT_WARNINGS: "1"
+        run: |
+          set -o pipefail
+          timeout 1200 python -m pytest tests/python -q -rs -m "not nrl" | tee pytest.log
+
+      # The same census as wheel-and-pytest. Tests marked `nrl` are
+      # deselected, not skipped, so the skip allowance is unchanged; the
+      # pass floor is lower by the deselected tests.
+      - name: Skip-census guard
+        run: |
+          python - <<'EOF'
+          import re, sys
+          log = open("pytest.log").read()
+          m = re.search(r"(\d+) passed(?:, (\d+) skipped)?", log)
+          if not m:
+              print("could not parse pytest summary"); sys.exit(1)
+          passed, skipped = int(m.group(1)), int(m.group(2) or 0)
+          d = re.search(r"(\d+) deselected", log)
+          print(f"census: {passed} passed, {skipped} skipped, "
+                f"{d.group(1) if d else 0} deselected (nrl)")
+          MAX_SKIPS_NO_NRL, MIN_PASSED_NO_NRL = 15, 250
+          if skipped > MAX_SKIPS_NO_NRL:
+              print(f"too many skips ({skipped} > {MAX_SKIPS_NO_NRL})"); sys.exit(1)
+          if passed < MIN_PASSED_NO_NRL:
+              print(f"too few passing ({passed} < {MIN_PASSED_NO_NRL})"); sys.exit(1)
+          EOF
+
+  # Windows with MSVC 2022. The Visual Studio generator is multi-config, so
+  # the build type is chosen at build time (--config Release) and ctest needs
+  # -C Release; executables land in a Release/ subdirectory. bash (Git for
+  # Windows) runs every step so the commands read as on Linux. The library's
+  # data directory on Windows is %LOCALAPPDATA%\ballistic.
+  windows-msvc:
+    runs-on: windows-2022
+    timeout-minutes: 150
+    defaults:
+      run:
+        shell: bash
+    env:
+      PYTHONUTF8: "1"
+      CMAKE_BUILD_PARALLEL_LEVEL: "4"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DBALLISTIC_BUILD_PYTHON=OFF
+
+      - name: Build
+        run: cmake --build build --config Release
+
+      - name: Toolchain record
+        run: cat build/toolchain_info.txt
+
+      - name: Default test gate (excludes the heavy tier)
+        run: >
+          ctest --test-dir build -C Release -LE heavy
+          --timeout 2400 --output-on-failure -j 4
+
+      - name: Run the C++ examples
+        run: |
+          data="$(cygpath -u "$RUNNER_TEMP")/localappdata"
+          mkdir -p "$data/ballistic"
+          cp tests/data/eop/finals2000A.all tests/data/weather/SW-All.csv "$data/ballistic/"
+          export LOCALAPPDATA="$(cygpath -w "$data")"
+          for ex in orbit_propagation sentinel_prediction; do
+            echo "== $ex"
+            build/examples/Release/$ex.exe
+          done
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Build and install the wheel
+        run: |
+          python -m pip install build
+          python -m build --wheel python/ --outdir dist/
+          python -m pip install dist/*.whl numpy pytest sgp4
+
+      # The portable part of the Linux wheel check: one compiled module for
+      # this interpreter (.pyd), no per-configuration subdirectory.
+      - name: Wheel contents
+        run: |
+          python - <<'EOF'
+          import glob, posixpath, sys, sysconfig, zipfile
+          wheel = glob.glob("dist/*.whl")[0]
+          names = zipfile.ZipFile(wheel).namelist()
+          want = "ballistic/_core" + sysconfig.get_config_var("EXT_SUFFIX")
+          modules = [n for n in names if posixpath.basename(n).startswith("_core.")
+                     and not n.endswith(".pyi")]
+          leaks = [n for n in names if n.endswith((".hpp", ".lib", ".a")) or "/Release/" in n
+                   or "ballistic_nrl" in n]
+          if modules != [want] or leaks:
+              print(f"want exactly {want}; modules {modules}; leaks {leaks[:20]}")
+              sys.exit(1)
+          print(f"wheel OK: {wheel} ({len(names)} entries)")
+          EOF
+
+      # Runs from the repo root, so `import ballistic` is the installed
+      # wheel. LOCALAPPDATA points at an empty directory so nothing on the
+      # runner can be auto-discovered (conftest.py then seeds its own
+      # hermetic copy, as XDG_DATA_HOME on Linux).
+      - name: pytest (default tier, installed wheel)
+        env:
+          BALLISTIC_STRICT_WARNINGS: "1"
+          BALLISTIC_OFFLINE: "1"
+        run: |
+          set -o pipefail
+          empty="$(cygpath -u "$RUNNER_TEMP")/localappdata-empty"
+          mkdir -p "$empty"
+          export LOCALAPPDATA="$(cygpath -w "$empty")"
+          python -m pytest tests/python -q -rs | tee pytest.log
+
+      - name: ballistic doctor (installed wheel)
+        run: |
+          data="$(cygpath -u "$RUNNER_TEMP")/localappdata"
+          export LOCALAPPDATA="$(cygpath -w "$data")" BALLISTIC_OFFLINE=1
+          python -m ballistic doctor
+
+      # Same expected skips as the Linux list in wheel-and-pytest: no test
+      # skips on Windows by platform, and the .gz fixtures are read through
+      # zlib, so no extra allowance.
+      - name: Skip-census guard
+        run: |
+          python - <<'EOF'
+          import re, sys
+          log = open("pytest.log").read()
+          m = re.search(r"(\d+) passed(?:, (\d+) skipped)?", log)
+          if not m:
+              print("could not parse pytest summary"); sys.exit(1)
+          passed, skipped = int(m.group(1)), int(m.group(2) or 0)
+          print(f"census: {passed} passed, {skipped} skipped")
+          MAX_SKIPS_WINDOWS, MIN_PASSED = 15, 400
+          if skipped > MAX_SKIPS_WINDOWS:
+              print(f"too many skips ({skipped} > {MAX_SKIPS_WINDOWS})"); sys.exit(1)
+          if passed < MIN_PASSED:
+              print(f"too few passing ({passed} < {MIN_PASSED})"); sys.exit(1)
+          EOF
+
+  # Nightly only: the tiers too slow for PR feedback.
+  heavy:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y libeigen3-dev
+
+      - name: Configure + build
+        run: |
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DBALLISTIC_NATIVE_ARCH=OFF
+          cmake --build build -j$(nproc)
+
+      # Diagnostics are EXCLUDE_FROM_ALL, so the `all` build never compiles
+      # them and they would bit-rot silently against API changes.
+      # Compile-only, nightly; the public tree has no diagnostics.
+      - name: Build diagnostics (rot guard)
+        run: if [ -d tests/diagnostics ]; then cmake --build build --target diagnostics -j$(nproc); else echo "no tests/diagnostics in this tree"; fi
+
+      # Tutorial examples are opt-in (BUILD_TUTORIAL_EXAMPLES=OFF by default),
+      # so the default build never compiles them either. Reconfigure the
+      # existing build (library cached) to add the targets, then build.
+      # Every tutorial listing must compile.
+      - name: Build tutorial examples (rot guard)
+        run: |
+          cmake -S . -B build -DBALLISTIC_BUILD_TUTORIAL_EXAMPLES=ON
+          cmake --build build -j$(nproc)
+
+      - name: Heavy ctest tier
+        run: ctest --test-dir build -L heavy --timeout 2400 --output-on-failure
+
+      - name: Heavy pytest tier (installed wheel)
+        run: |
+          python -m pip install build
+          python -m build --wheel python/ --outdir dist/
+          python -m pip install dist/*.whl numpy pytest sgp4 pandas h5py
+          BALLISTIC_HEAVY=1 timeout 3600 python -m pytest tests/python -q -rs

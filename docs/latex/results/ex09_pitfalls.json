@@ -1,0 +1,8 @@
+{
+  "wrong_itrf_rmse_m": 0.007543,
+  "eop_loaded": true,
+  "missing_eop_documented_leo_error_m": 3.0,
+  "leap_from_file": true,
+  "tai_utc_s": 37,
+  "leap_entry_count": 28
+}

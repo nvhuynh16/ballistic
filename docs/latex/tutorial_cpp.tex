@@ -1,0 +1,27 @@
+\documentclass[11pt]{report}
+\input{common/preamble}
+\input{common/macros}
+
+\title{\Huge\Ballistic\\[4pt]\Large A Hands-On Tutorial — C++}
+\author{Generated from compiled, executed example programs\\
+  (\texttt{docs/latex/examples/cpp/}); every number is real output.}
+\date{\today}
+
+\begin{document}
+\maketitle
+\tableofcontents
+
+\chapter{Setup \& Initialization}\input{chapters_cpp/ch01}
+\chapter{Core Datatypes: Epoch \& Time Scales}\input{chapters_cpp/ch02}
+\chapter{Propagation: RK45, YOSHIDA8, Sentinel vs Truth}\input{chapters_cpp/ch03}
+\chapter{Empirical Acceleration --- Clean Data}\input{chapters_cpp/ch04}
+\chapter{Empirical Acceleration --- Noisy Data \& hv-block CV}\input{chapters_cpp/ch05}
+\chapter{The Ballistic Sanity Check}\input{chapters_cpp/ch06}
+\chapter{Multi-Sensor Fusion --- the GM-RTS Smoother (Radar + Optics)}\input{chapters_cpp/ch07}
+\chapter{Recommended Parameters \& RMSE Reference}\input{chapters_cpp/ch08}
+\chapter{Pitfalls}\input{chapters_cpp/ch09}
+\chapter{Self-Review / QA Log}\input{chapters_cpp/ch10}
+\chapter{Mathematical Foundations}\input{common/ch_math}
+\input{common/references}
+
+\end{document}

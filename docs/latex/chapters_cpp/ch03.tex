@@ -1,0 +1,24 @@
+We take an early state vector from a Sentinel-1 precise-orbit (EOF) file as
+the initial condition, propagate one hour, and RMSE-compare against the EOF
+truth (RTN-decomposed) via \code{compute\_propagation\_result}. We sweep the
+integrator (\code{RK45} adaptive vs \code{YOSHIDA8} symplectic) and the ITRF
+realization.
+
+\textbf{ITRF rule.} ESA switched Sentinel POD products from ITRF2014 to
+ITRF2020 on 4 March 2025. The 2016 data here is \textbf{ITRF2014}; using
+ITRF2020 is the ``wrong frame'' contrast.
+
+\examplenote{\code{examples/cpp/ex03\_sentinel\_propagation.cpp}}
+\exfile{examples/cpp/ex03_sentinel_propagation.cpp}{C++}
+\resultfile{results/ex03_sentinel_rmse.json}{1-hour RMSE vs EOF truth.}
+
+RK45/ITRF2014 lands at ${\sim}0.18\,$m --- comfortably inside the
+documented sub-meter Sentinel baseline (the 6-satellite January-2026
+campaign gives $0.54\,$m with these bare defaults and $0.24\,$m with the
+recommended configuration; this early-2016 arc is a friendly one). Two
+library fixes moved it: the 2026-07 epoch-label/interpolation fix (from
+$0.41\,$m) and the 2026-11 exact \code{Epoch}, which removed a
+$13\,\mu$s short landing of every one-hour target (along-track
+$0.10 \to 0.02\,$m). YOSHIDA8 is competitive on this arc.
+The ITRF2014-vs-ITRF2020 difference is a few mm: real, but second-order
+next to frame and EOP correctness --- use the right realization anyway.

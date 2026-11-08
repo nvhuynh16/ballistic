@@ -1,0 +1,39 @@
+For noisy data without truth, hyperparameters are chosen by hv-block
+cross-validation: \code{cfg.set\_cv()}. We add Gaussian noise (POS 1.0\,m,
+VEL 0.25\,m/s, ACC 0.1\,m/s$^2$) and run each \{obs, rate\} cell. GN
+(consistent-objective regularized, 2026-07) is default-ON and benefits POS
+and VEL alike; the ACC facade ignores it (circular).
+
+The solver is iteratively-regularized Gauss--Newton~\eqref{eq:irgn}
+(\cite{bakushinskii1992}); the decreasing $\lambda_k$ is the continuation
+keeping the iterate in the enlarged basin (Proposition~\ref{prop:basin}).
+hv-block CV is provably consistent here (Proposition~\ref{prop:cv},
+\cite{racine2000}); plain $K$-fold is not. See Mathematical Foundations.
+
+\examplenote{\code{examples/py/ex05\_ea\_noisy\_glide.py}, one cell per
+process. Heavy regeneration is decoupled from the PDF build. The numbers
+below are the canonical \code{regen.sh} run; EA recovery is
+language-agnostic physics (CV winners carry the documented cross-binary
+FP variance of a few tenths of a meter).}
+\exfile{examples/py/ex05_ea_noisy_glide.py}{Python}
+
+\resultfile{results/ea_noisy_pos_100.csv}{Noisy POS, 100 Hz, hv-block CV.}
+\resultfile{results/ea_noisy_pos_200.csv}{Noisy POS, 200 Hz, hv-block CV.}
+\resultfile{results/ea_noisy_vel_100.csv}{Noisy VEL, 100 Hz.}
+\resultfile{results/ea_noisy_vel_200.csv}{Noisy VEL, 200 Hz.}
+\resultfile{results/ea_noisy_acc_100.csv}{Noisy ACC, 100 Hz.}
+\resultfile{results/ea_noisy_acc_200.csv}{Noisy ACC, 200 Hz.}
+
+\pitfall{An earlier edition measured noisy VEL diverging outright
+(${\sim}29\,$km!) with bare public-API defaults. That was real, and it
+was \emph{fixed} in 2026-07: the arc-length auto-clamp removed the
+line-search freeze on short arcs, and regularized GN is now default-ON
+for VEL. With current defaults noisy VEL recovers ${\sim}0.4$--$0.5\,$m
+--- no research harness needed. The remaining honest limit is ACC at
+$\sigma=0.1\,$m/s$^2$ (${\sim}15\,$m at 100\,Hz, ${\sim}7\,$m at
+200\,Hz): that $\sigma$ is artificially
+large for an accelerometer (realistic $10^{-6}$--$10^{-2}\,$m/s$^2$,
+where sub-meter returns), and double-integrating acceleration noise costs
+the most position information. For scale, the no-EA baseline is
+${\sim}35\,$km (Chapter 4). POS + GN + hv-block CV remains the most
+robust noisy path; higher sample rate helps every modality.}

@@ -1,0 +1,37 @@
+# Repo-wide ruff policy. The wheel's pyproject lives in
+# python/, so lint config lives here at the root.
+#
+# Philosophy: the LIVE surface (python/ballistic, tests/python actively-run
+# suites, validation scripts) lints clean; FROZEN research/verification
+# artifacts are exempted per-file rather than churned — they are records of
+# proven runs (the SymPy Hessian ITEM verifications, the collocation
+# prototypes), and cosmetic edits there risk touching evidence for zero
+# functional gain.
+
+# Type stubs are generated (nanobind.stubgen; CI diffs them against a fresh
+# generation), so their imports and names follow the generator, not this policy.
+extend-exclude = ["*.pyi"]
+
+[lint]
+# Text files are opened with an explicit encoding: the default is the locale's
+# (cp1252 on most Windows machines), so the same file would read differently
+# per platform. PLW1514 is a preview rule; explicit-preview-rules keeps every
+# other preview rule off.
+preview = true
+explicit-preview-rules = true
+extend-select = ["PLW1514"]
+
+[lint.per-file-ignores]
+# Deliberate interleaved import order (bindings first, then wrappers that
+# import from them); reordering risks import cycles for zero value.
+"python/ballistic/__init__.py" = ["E402"]
+# Scripts use the sys.path.insert(0, 'python') pattern before importing
+# ballistic — E402 is structural there.
+"scripts/**/*.py" = ["E402"]
+# Frozen research prototypes outside the public tree carry their own ruff.toml.
+# FROZEN SymPy/mpmath verification artifacts (gravity Hessian ITEM records,
+# 23/23 proven): unused intermediate symbols are part of the derivation
+# narrative; do not edit cosmetically.
+"tests/python/verify_gravity_hessian_stage_a.py" = ["E702", "E741", "F841", "E402"]
+"tests/python/pole_region_hessian_reference.py" = ["E702", "E741", "F841", "E402"]
+"tests/python/mpmath_fd_reference.py" = ["E702", "E741", "F841", "E402"]

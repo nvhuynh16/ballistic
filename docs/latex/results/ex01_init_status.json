@@ -1,0 +1,12 @@
+{
+  "success": true,
+  "eop_loaded": true,
+  "eop_auto_discovered": true,
+  "leap_seconds_loaded": true,
+  "leap_seconds_from_file": true,
+  "current_tai_utc_s": 37,
+  "leap_entry_count": 28,
+  "gravity_degree_loaded": 360,
+  "jpl_de_version": "DE440 (embedded)",
+  "data_directory": "/home/user/.local/share/ballistic"
+}

@@ -1,0 +1,51 @@
+Consolidated guidance from Chapters 3--7 and the measured estimator
+comparisons (\code{docs/empirical\_acceleration\_estimation.md}). The
+method choice comes down to \textbf{two rules}, and the Python surface
+keeps no method that lost in each measured scenario (the collocation facades and the legacy
+IRGN multi-sensor family are gone entirely):
+
+\begin{center}\small
+\begin{tabular}{@{}lll@{}}
+\toprule
+Use case & Method & Key parameters \\
+\midrule
+Sub-meter orbit (POE ref) & RK45, GCRS, deg 70 & correct ITRF; EOP loaded \\
+Long arc ($>$6 h) & YOSHIDA8 & \code{symplectic\_step\_size}$\sim$30 \\
+Clean POS / VEL / ACC EA & \code{estimate\_ea\_bspline} + typed samples & GN default-ON (ACC ignores it) \\
+Noisy POS EA & B-spline + \code{cfg.set\_cv()} & GN on (default) \\
+Fusion (radar/optics/fix) or noisy POS & \code{estimate\_ea\_smoother} & GM-RTS; $\ge$2 radars; +camera \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\medskip
+The modality is the sample \emph{type} ---
+\code{PositionSamples} / \code{VelocitySamples} / \code{AccelSamples} ---
+so mixing them up is an error at the call, not a silent misfit.
+Measured headlines: Sentinel 1-hour ${\sim}0.18\,$m; clean-glide EA
+${\sim}7\,$mm POS+GN, ${\sim}0.09\,$m VEL, ${\sim}8\,$mm ACC; noisy-POS +
+hv-block CV ${\sim}0.2\,$m; noisy-VEL ${\sim}0.4$--$0.5\,$m; ballistic
+control ${\approx}0\,$m; 2-radar
+fusion ${\sim}6\,$m (geometry floor), ${\sim}0.3\,$m with a $50\,\mu$rad
+camera. \textbf{Scale reference:} EA=0 on the forced glide is
+${\sim}35\,$km off --- the denominator for every EA RMSE in Chapters
+4--5. Dense single-modality data $\rightarrow$
+\code{estimate\_ea\_bspline} with GN left ON (the old ``GN destabilizes
+VEL'' rule was falsified and deleted, 2026-07); fusion or noisy positions
+$\rightarrow$ \code{estimate\_ea\_smoother}. Forces are presence-as-switch
+in both languages (\code{srp=SrpConfig(...)}, \code{drag\_env=...}; both
+default OFF) --- set them deliberately.
+
+\medskip
+\noindent\textbf{Each parameter traces to a result in Mathematical
+Foundations:} knot spacing $\leftarrow$ spline bias bound
+\eqref{eq:knot} (Theorem~\ref{thm:spline}); $\lambda$ grid $\leftarrow$
+bias--variance scaling \cite{wahba1990}; IRGN schedule $\leftarrow$
+continuation in the enlarged ball (Proposition~\ref{prop:basin},
+\cite{bakushinskii1992}); hv-block/gap $\leftarrow$ consistency under
+chaotic dependence (Proposition~\ref{prop:cv}, \cite{racine2000});
+``$\ge2$ radars / add a camera'' $\leftarrow$ Cramér--Rao impossibility
+(Theorem~\ref{thm:cr}). Under bounded EA a positive-radius basin
+certificate exists and grows with $\lambda$ (Lemma~\ref{lem:curv},
+Proposition~\ref{prop:basin}) but is conservative and not global;
+parameters minimize the provably consistent CV risk.

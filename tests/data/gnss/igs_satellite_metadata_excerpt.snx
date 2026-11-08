@@ -1,0 +1,56 @@
+%=SNX 2.02 DLR 26:295:28054 DLR 78:053:00000 00:000:00000 P 00000 0
+* Excerpt of the public IGS satellite metadata file, release 2441:
+* https://files.igs.org/pub/station/general/igs_satellite_metadata.snx
+* Rows kept verbatim for the GNSS satellites of the committed SP3 test files.
+* QZSS masses: only the interval containing 2024 day 015 and the open last one.
+*-------------------------------------------------------------------------------
++SATELLITE/IDENTIFIER                                                           
+*SVN_ COSPAR ID SatCat Block__________ Comment__________________________________
+ G049 2009-014A  34661 GPS-IIR-M       Launched 2009-03-24; NAVSTAR 63
+ G061 2004-045A  28474 GPS-IIR-B       Launched 2004-11-06; NAVSTAR 56
+ G063 2011-036A  37753 GPS-IIF         Launched 2011-07-16; NAVSTAR 66
+ G080 2024-242A  62339 GPS-IIIA        Launched 2024-12-17; NAVSTAR 83
+ C006 2010-057A  37210 BDS-2G          Launched 2010-10-31; BEIDOU 6
+ C011 2012-008A  38091 BDS-2G          Launched 2012-02-24; BEIDOU 11
+ C016 2012-059A  38953 BDS-2G          Launched 2012-10-25; BEIDOU 16
+ C018 2016-037A  41586 BDS-2G          Launched 2016-06-12; BD-2-G7
+ C020 2019-027A  44231 BDS-2G          Launched 2019-05-17; BEIDOU 2 G8
+ J002 2017-028A  42738 QZS-2I          Launched 2017-06-01; MICHIBIKI-2
+ J004 2017-062A  42965 QZS-2I          Launched 2017-10-09; MICHIBIKI-4
+ J005 2021-096A  49336 QZS-2A          Launched 2021-10-26; QZS-1R
+-SATELLITE/IDENTIFIER                                                           
++SATELLITE/PRN                                                                  
+*SVN_ Valid_From____ Valid_To______ PRN Comment_________________________________
+ G049 2009:083:00000 2011:127:00000 G01 
+ G049 2024:113:00000 2024:352:00000 G01 
+ G061 2004:311:00000 0000:000:00000 G02 
+ G063 2011:197:00000 2024:103:00000 G01 
+ G080 2024:352:00000 0000:000:00000 G01 
+ C006 2010:304:00000 2026:111:28800 C04 NABU 20260022
+ C011 2012:055:00000 2026:111:50400 C05 
+ C016 2012:299:00000 2026:107:46800 C02 NABU 20260009
+ C018 2018:272:07320 2026:108:25200 C03 NABU 20260011
+ C020 2020:091:15600 2026:110:43200 C01 start fr. tracking data; NABU 20260019
+ J002 2017:152:00000 0000:000:00000 J02 [PR01]
+ J004 2017:282:00000 0000:000:00000 J03 [PR01]
+ J005 2021:321:00000 0000:000:00000 J04 [PR01]
+-SATELLITE/PRN                                                                  
++SATELLITE/MASS                                                                 
+*SVN_ Valid_From____ Valid_To______ Mass_[kg] Comment___________________________
+ G049 2009:083:00000 0000:000:00000  1080.000 GPS-IIR-M; [MA03]
+ G061 2004:311:00000 0000:000:00000  1080.000 GPS-IIR-B; [MA03]
+ G063 2011:197:00000 0000:000:00000  1633.000 GPS-IIF; [MA04]
+ G080 2024:352:00000 0000:000:00000  2161.000 GPS-III; [MA27]
+ C006 2010:304:00000 0000:000:00000  1536.000 BDS-2G; [MA31]
+ C011 2012:055:00000 0000:000:00000  1502.000 BDS-2G; [MA31]
+ C016 2012:299:00000 0000:000:00000  1551.000 BDS-2G; [MA31]
+ C018 2016:164:00000 0000:000:00000  1486.000 BDS-2G; [MA31]
+ C020 2019:137:00000 0000:000:00000  1500.000 BDS-2G; [MA31]
+ J002 2023:305:33801 2024:121:77200  2233.000 QZS-2I; [MA29]
+ J002 2025:298:31952 0000:000:00000  2205.000 QZS-2I; [MA29]
+ J004 2023:365:34087 2024:176:78166  2243.000 QZS-2I; [MA26]
+ J004 2026:169:78012 0000:000:00000  2196.000 QZS-2I; [MA26]
+ J005 2023:220:01868 2024:035:45613  2327.000 QZS-2A; [MA34]
+ J005 2026:211:00525 0000:000:00000  2268.000 QZS-2A; [MA34]
+-SATELLITE/MASS                                                                 
+%ENDSNX

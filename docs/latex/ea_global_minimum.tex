@@ -1,0 +1,736 @@
+\documentclass[11pt]{article}
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage[hidelinks]{hyperref}
+\usepackage{parskip}
+
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{assumption}[theorem]{Assumption}
+\newtheorem{example}[theorem]{Example}
+\theoremstyle{remark}
+\newtheorem*{remark}{Remark}
+
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\norm}[1]{\left\lVert#1\right\rVert}
+\newcommand{\abs}[1]{\left\lvert#1\right\rvert}
+\newcommand{\trc}{\mathsf{T}}
+\DeclareMathOperator*{\argmin}{arg\,min}
+\DeclareMathOperator{\rank}{rank}
+\DeclareMathOperator{\spn}{span}
+
+\title{\bfseries Ensuring and Certifying the Global\\
+Empirical-Acceleration Estimate\\[4pt]
+\large A Self-Contained Mathematical Treatment}
+\author{}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+We study when the empirical acceleration (EA) recovered from noisy
+observations of a forced trajectory is \emph{the global} minimizer of the
+estimation objective, and --- the central question --- when this can be
+\emph{proved}. The problem is a regularized nonlinear least-squares
+inverse problem constrained by an ordinary differential equation. We
+show that an unconditional, a-priori global certificate does not exist for
+the operational problem (a consequence of computational complexity,
+dimension, and identifiability, not of any single proof technique), but
+that a \emph{conditional, constructive, per-run} certificate does. The
+treatment is self-contained and develops every notion --- including the
+tangential cone condition --- from first principles, with proofs.
+Multisensor fusion is treated in detail and shown to be the setting in
+which the certificate is most attainable.
+\end{abstract}
+
+\section*{How to read this document}
+The audience is a reader with a mathematics and numerical-methods
+background but no prior exposure to inverse-problem regularity conditions.
+\textbf{Proof policy.} Results we prove in full are stated as
+Theorem/Lemma/Proposition with a \emph{Proof}. Results that are standard
+but whose complete proofs are long are stated precisely with a
+\emph{Proof sketch} and a citation to a full treatment; no result is
+asserted without either a proof or a citation. The operative certificates
+(Theorems~\ref{thm:convex}, \ref{thm:path}, the impossibility
+Theorem~\ref{thm:cr}, and the multisensor Lemma~\ref{lem:stack}) are
+proved in full.
+
+\section{The problem and its operator}\label{sec:prob}
+
+Let the state $x(t)=(r(t),v(t))\in\R^{6}$ evolve by
+\begin{equation}
+\dot r = v,\qquad \dot v = g(r,t) + a(t),
+\label{eq:ode}
+\end{equation}
+where $g:\R^{3}\times[0,T]\to\R^{3}$ is a known, real-analytic force
+field (gravity, third bodies, radiation), and $a:[0,T]\to\R^{3}$ is the
+unknown empirical acceleration. Write the flow
+$x(t)=\Phi_{0\to t}(x_0;a)$: the solution operator of \eqref{eq:ode},
+returning the state at time $t$ obtained by integrating from the
+initial condition $x_0=(r_0,v_0)$ under the driving input $a$. The
+semicolon separates the initial condition from the input function on
+which the flow depends, and the subscript $0\to t$ records the
+integration interval; thus $\Phi_{0\to t}(\,\cdot\,;a):\R^{6}\to\R^{6}$
+for each fixed $a$ and each fixed $t\in[0,T]$. We emphasize the
+structural fact used throughout:
+
+\begin{remark}[Affine input]\label{rem:affine}
+$a$ enters \eqref{eq:ode} \emph{linearly}. All nonlinearity of
+$a\mapsto\Phi$ originates in $g$'s dependence on the state, propagated by
+the flow; none originates in $a$ itself.
+\end{remark}
+
+Expand $a$ in a fixed degree-$d$ B-spline basis on knot spacing $h$,
+$a(t)=\sum_{k=1}^{n}c_k B_k(t)$, $c\in\R^{p}$, $p=3n$. With $a$ now
+parametrized by the coefficient vector $c$, we write
+$\Phi_{0\to t}(x_0;c)$ for $\Phi_{0\to t}(x_0;a[c])$. Observations are
+$y_i=\mathcal H\big(\Phi_{0\to t_i}(x_0;c)\big)+\varepsilon_i$,
+$i=1,\dots,N$, $\varepsilon_i\sim\mathcal N(0,\Sigma_i)$, with sensor
+map $\mathcal H:\R^{6}\to\R^{k}$ converting a full state into the
+quantity an individual sensor reports --- concretely
+$(\rho,\mathrm{az},\mathrm{el},\dot\rho)$ for a radar
+($k=4$), $(\mathrm{az},\mathrm{el})$ for an optics measurement
+($k=2$), the position component $r$ for a position-fix ($k=3$), or
+the specific force $g(r,t)+a(t)$ for an accelerometer ($k=3$). Thus
+$\mathcal H\big(\Phi_{0\to t_i}(x_0;c)\big)$ is the model-predicted
+observation at $t_i$ given EA coefficients $c$. Stacking and
+pre-whitening, define the forward operator $F:\R^{p}\to\R^{m}$,
+\begin{equation}
+F(c)_i=\Sigma_i^{-1/2}\big(y_i-\mathcal H(\Phi_{0\to t_i}(x_0;c))\big).
+\label{eq:F}
+\end{equation}
+$F$ is $C^{2}$ on any compact set on which the trajectory avoids the
+singularities of $g$ (here $r\neq0$); we make this precise in
+\S\ref{sec:local}. The inverse problem ``recover $a$'' is
+ill-posed in the sense of Hadamard \cite{tikhonov1977,engl1996}: small
+data perturbations need not depend continuously on $c$ without
+regularization.
+
+\section{The optimization and the meaning of ``global''}\label{sec:opt}
+
+Let $\Omega=L^{\trc}L\succeq0$ be the order-$m$ spline roughness matrix.
+The estimator solves
+\begin{equation}
+\hat c(\lambda)\in\argmin_{c\in\mathcal C}\;
+\Psi_\lambda(c),\qquad
+\Psi_\lambda(c)=\tfrac12\norm{F(c)}^{2}+\tfrac{\lambda}{2}\,c^{\trc}\Omega c,
+\label{eq:Psi}
+\end{equation}
+over the compact feasible set $\mathcal C=\{\,c:\norm{a[c]}_\infty\le
+A\,\}$, a box of known diameter $D$ (boundedness of EA plus basis
+conditioning). ``The global EA'' means a minimizer of $\Psi_{\lambda}$ at
+the operational $\lambda$ (or, in the limit, of $\Psi_0$ restricted to
+$\mathcal C$). \emph{Whether this minimizer is unique} is itself a
+theorem, not an assumption (\S\ref{sec:ident}).
+
+\begin{remark}
+Magnitude bounds on $g$ (truncated spherical-harmonic series with bounded
+coefficients), on third-body parameters, and on the state
+($r\in[r_{\min},r_{\max}]$, $r_{\min}>0$) bound the \emph{curvature} of
+$F$ (\S\ref{sec:local}). They do not bound the \emph{number or
+arrangement} of stationary points of $\Psi_\lambda$; that is a separate,
+landscape question, which is the source of all difficulty below.
+\end{remark}
+
+\section{Nonconvexity: a worked scalar model}\label{sec:toy}
+
+Before the general theory, a one-line model exhibits the entire
+mechanism. Let $F(c)=\sin(\omega c)-y$, $c,y\in\R$, mimicking a forward
+map whose nonlinearity scale is $\omega$ (the analogue of the flow's
+sensitivity amplification, $\omega\leftrightarrow L_gT$ of
+\S\ref{sec:local}).
+
+\begin{example}\label{ex:scalar}
+Stationarity of $\tfrac12(\sin\omega c-y)^{2}$ requires $\sin\omega c=y$
+or $\cos\omega c=0$. On an interval of length $\ell$ each equation has
+$\Theta(\omega\ell/\pi)$ roots, so the misfit has only $O(1)$ stationary
+points when $\omega\ell\lesssim\pi$ but $\Theta(\omega\ell)$ of them once
+$\omega\ell\gg\pi$. Thus \emph{boundedness of the data ($\abs y\le1$) and
+of every derivative does not bound the number of minima}; only the
+product $\omega\ell$ --- a nonlinearity-times-domain quantity --- does.
+That same product is precisely $L_gT$ in the orbital problem
+(\S\ref{sec:local}): the take-away the reader should carry forward is that
+controlling forces controls $\omega$, never $\ell$, and certifiability
+lives in their product.
+\end{example}
+
+This is why ``bound the forces'' alone cannot certify the global
+minimum: it controls $\omega$ (curvature), not $\ell$ (the set we must
+search) nor the count of basins their product produces.
+
+\section{Local theory: Gauss--Newton and the convergence ball}
+\label{sec:local}
+
+Let $J(c)=F'(c)\in\R^{m\times p}$, the Jacobian of the pre-whitened
+residual operator with respect to $c$. Differentiating
+\eqref{eq:F}, block-row $i$ factors by the chain rule as
+\begin{equation}
+J(c)_i \;=\; -\,\Sigma_i^{-1/2}\,
+\underbrace{\frac{\partial \mathcal H}{\partial x}\big(\Phi_{0\to t_i}(x_0;c)\big)}_{\text{sensor linearization}\;\in\R^{k\times 6}}\;
+\underbrace{\frac{\partial \Phi_{0\to t_i}}{\partial c}(x_0;c)}_{\text{state-transition sensitivities}\;\in\R^{6\times p}},
+\label{eq:Jfactor}
+\end{equation}
+the second factor obtained by integrating the variational
+(state-transition) equation along the trajectory --- hence the
+qualifier ``variational/state-transition Jacobian''. Let
+$G(c)=J(c)^{\trc}J(c)\succeq0$. Gauss--Newton, regularized
+(IRGN), iterates
+\begin{equation}
+c_{k+1}=c_k-\big(G_k+\lambda_k\Omega\big)^{-1}
+\big(J_k^{\trc}F(c_k)+\lambda_k\Omega c_k\big),\quad
+\lambda_k=\max(\lambda_{\min},\lambda_0 q^{k}).
+\label{eq:irgn}
+\end{equation}
+
+\begin{lemma}[Bounded input gives explicit curvature]\label{lem:KT}
+Assume \textup{(A1)} $\norm{a}_\infty\le A$ on $[0,T]$ and \textup{(A2)}
+$r(t)\in[r_{\min},r_{\max}]$, $r_{\min}>0$, on $[0,T]$. Then $F\in
+C^{2}(\mathcal C)$ and there is a finite, in-principle computable constant
+\begin{equation}
+\sup_{\mathcal C}\norm{F''}\;\le\;K_T\;=\;C\,e^{\,\beta L_gT},\qquad
+L_g=\sup_{r\in[r_{\min},r_{\max}],\,t}\norm{\partial g/\partial r},
+\label{eq:KT}
+\end{equation}
+for a constant $\beta\le2$ and $C$ depending on $\norm B$, $T$ and the
+basis conditioning. (The constant in the exponent is $\le2$ because the
+\emph{second} variation of the flow carries the state-transition matrix
+quadratically; only the qualitative fact ``exponential in $L_gT$''
+matters below.) Moreover, if the unforced trajectory stays a fixed
+margin above the singular set on $[0,T]$ and $A$ is small enough that the
+Gr\"onwall deviation does not consume that margin, then \textup{(A1)}
+yields a compact tube and hence \textup{(A2)} with $r_{\min}>0$ --- the
+situation on any arc cut short of reentry.
+\end{lemma}
+
+\begin{proof}[Sketch]
+By Remark~\ref{rem:affine} the second derivative of $c\mapsto\Phi$ has no
+contribution from the input; differentiating the variational equation
+twice, $F''$ is a time-integral of $\partial^{2}g/\partial r^{2}$
+contracted with the state-transition matrix. On $[r_{\min},r_{\max}]$,
+$\partial^{2}g/\partial r^{2}$ (essentially $\partial^{3}V/\partial
+r^{3}$ plus bounded harmonics) is bounded; the state-transition matrix
+satisfies $\norm{M(t)}\le e^{L_gT}$ by Gr\"onwall's inequality applied to
+the linear variational system \cite{hairer1993,ortega1970}. The second
+variation pairs \emph{two} transition matrices with one bounded
+$\partial^{2}g/\partial r^{2}$, hence is controlled by $e^{\beta L_gT}$,
+$\beta\le2$; composing with the bounded $\mathcal H$ gives \eqref{eq:KT}.
+The compact-tube claim is a second Gr\"onwall estimate on the deviation
+from the unforced trajectory, valid while that deviation does not reach
+the singular set.
+\end{proof}
+
+\begin{proposition}[Convergence ball; regularization enlarges it]
+\label{prop:ball}
+Under the affine-covariant Lipschitz condition
+$\norm{(G+\lambda\Omega)^{-1}(J(c')-J(c))(c'-c)}\le\omega(\lambda)
+\norm{c'-c}^{2}$, the iteration \eqref{eq:irgn} converges q-linearly to a
+stationary point of $\Psi_\lambda$ from any $c_0$ with
+$\norm{c_0-\hat c}<2/\omega(\lambda)$ \cite{deuflhard2004,nocedal2006}.
+Furthermore
+\begin{equation}
+\rho(\lambda):=\frac{2}{\omega(\lambda)}\;\ge\;
+\frac{2\lambda\,\sigma_{\min}(\Omega)}{K_T}>0 .
+\label{eq:rho}
+\end{equation}
+\end{proposition}
+
+\begin{proof}
+The first statement is the affine-covariant Newton--Kantorovich theorem
+\cite{deuflhard2004} for the regularized normal map. For
+\eqref{eq:rho}: $G\succeq0$ and Weyl's inequality give
+$\sigma_{\min}(G+\lambda\Omega)\ge\lambda\,\sigma_{\min}(\Omega)$, hence
+$\norm{(G+\lambda\Omega)^{-1}}\le(\lambda\sigma_{\min}(\Omega))^{-1}$.
+With $\norm{J(c')-J(c)}\le K_T\norm{c'-c}$
+(Lemma~\ref{lem:KT}) the affine-covariant constant obeys
+$\omega(\lambda)\le K_T/(\lambda\sigma_{\min}(\Omega))$; invert.
+\end{proof}
+
+A word on what Proposition~\ref{prop:ball} does and does not say, since it
+is easy to over-read. It is the \emph{local} affine-covariant
+Gauss--Newton convergence ball: it presumes the iteration is already near
+\emph{a} stationary point with a residual small relative to the curvature
+(the standard small-residual Deuflhard hypothesis \cite{deuflhard2004});
+it does not assert convergence from arbitrary starts, nor that the
+stationary point reached is the global one. Equation \eqref{eq:rho} is
+rigorous \emph{with an explicit constant} (not merely in form), but
+$K_T\sim e^{\beta L_gT}$ is exponentially conservative
+(\S\ref{sec:toy}'s $\omega\ell$). The useful content is the
+\emph{mechanism}: more regularization provably enlarges the ball. Whether
+the ball is operationally large, and whether the landscape is unimodal,
+are separate questions taken up in
+\S\S\ref{sec:tcc}--\ref{sec:ceiling}.
+
+\section{The tangential cone condition}\label{sec:tcc}
+
+This section is the conceptual center of the document, so we proceed
+slowly. We have a basin around \emph{a} stationary point
+(\S\ref{sec:local}); what we actually want is the assurance that the
+stationary point we reach is \emph{the global one} --- equivalently, that
+the misfit has \emph{no spurious traps} on the region we search. The
+tangential cone condition (TCC) is exactly the structural hypothesis that
+delivers this, and it is the inverse-problems analogue of the
+``every critical point is global'' conditions familiar from convex and
+gradient-dominated optimization. A reader meeting it for the first time
+should focus on the geometric reading given after the definition.
+
+\begin{definition}[Tangential cone condition, TCC]\label{def:tcc}
+$F$ satisfies the TCC with constant $\eta\in(0,1)$ on a ball
+$B_\rho(c^{\dagger})$ if for all $c,\tilde c\in B_\rho(c^{\dagger})$,
+\begin{equation}
+\norm{F(c)-F(\tilde c)-F'(c)(c-\tilde c)}\;\le\;
+\eta\,\norm{F(c)-F(\tilde c)} .
+\label{eq:tcc}
+\end{equation}
+\end{definition}
+
+\paragraph{Why this and not ordinary smoothness.} A $C^{2}$ map obeys
+$\norm{F(c)-F(\tilde c)-F'(c)(c-\tilde c)}\le\tfrac12 K_T
+\norm{c-\tilde c}^{2}$. For ill-posed $F$ the right-hand side can dwarf
+$\norm{F(c)-F(\tilde c)}$ (small singular values make $F$ move little
+while $c$ moves a lot), so quadratic smoothness gives no control of the
+\emph{misfit landscape}. TCC instead measures the linearization error
+\emph{relative to how much $F$ actually moves}: it forbids the image of a
+segment from leaving a cone about its tangent --- geometrically, the
+surface never folds back on itself.
+
+\begin{lemma}[TCC removes spurious critical points]\label{lem:tcc}
+If $F$ satisfies the TCC with $\eta<1$ on $B_\rho(c^\dagger)$ and
+$F(c^\dagger)=0$ (attainable, noise absorbed), then every stationary
+point of $c\mapsto\tfrac12\norm{F(c)}^{2}$ in $B_\rho(c^\dagger)$ is a
+global zero; in particular the minimizer is unique up to
+$\ker F'(c^\dagger)$.
+\end{lemma}
+
+\begin{proof}
+The idea is to project away the linear (tangent) term in the TCC and let
+stationarity kill the remaining component. Let $c^\star\in B_\rho$ be
+stationary, $F'(c^\star)^{\trc}F(c^\star)=0$, and let $P$ be the
+orthogonal projector onto $\operatorname{range}F'(c^\star)$. Stationarity
+says precisely $F(c^\star)\in\big(\operatorname{range}F'(c^\star)\big)^{
+\perp}$ (because $F'^{\trc}F=0\iff F\perp\operatorname{range}F'$), hence
+\[
+P\,F(c^\star)=0,\qquad\text{so}\qquad (I-P)\,F(c^\star)=F(c^\star).
+\]
+Apply the TCC \eqref{eq:tcc} with $c=c^\star$, $\tilde c=c^\dagger$ and
+$F(c^\dagger)=0$:
+\[
+\norm{F(c^\star)-F'(c^\star)(c^\star-c^\dagger)}\le
+\eta\,\norm{F(c^\star)} .
+\]
+Now $F'(c^\star)(c^\star-c^\dagger)\in\operatorname{range}F'(c^\star)$,
+so it is annihilated by $I-P$. Since $I-P$ is an orthogonal projector
+($\norm{I-P}\le1$),
+\[
+\norm{F(c^\star)}
+=\norm{(I-P)F(c^\star)}
+=\big\|(I-P)\big(F(c^\star)-F'(c^\star)(c^\star-c^\dagger)\big)\big\|
+\le\eta\,\norm{F(c^\star)} .
+\]
+With $\eta<1$ this forces $\norm{F(c^\star)}=0$: every stationary point
+in the ball is a global zero. Uniqueness modulo $\ker F'$: if
+$F(c_1)=F(c_2)=0$ with $c_1,c_2\in B_\rho$, the TCC with $c=c_1$,
+$\tilde c=c_2$ gives $\norm{F'(c_1)(c_1-c_2)}\le\eta\cdot0=0$, so
+$c_1-c_2\in\ker F'(c_1)$.
+\end{proof}
+
+\begin{remark}[The noisy case is the honest one]
+The hypothesis $F(c^\dagger)=0$ is the \emph{attainable} idealization
+(the model can fit the data exactly). With genuine noise no exact zero
+exists; repeating the projection argument with $F(c^\dagger)\neq0$ yields
+$\norm{F(c^\star)}\le(1-\eta)^{-1}\norm{F(c^\dagger)}$, i.e.\ spurious
+critical points sit within an $O(\text{noise level})$ band of the
+optimum. This is exactly the ``semiconvergence'' picture: one stops the
+iteration at the noise level (discrepancy principle), and TCC guarantees
+no \emph{worse-than-noise} trap in the ball \cite{kaltenbacher2008}.
+\end{remark}
+
+\begin{theorem}[IRGN under TCC]\label{thm:irgn}
+If $F$ satisfies the TCC with $\eta<1$ on a ball containing $c_0$ and
+$c^\dagger$, then \eqref{eq:irgn} (and Landweber, Levenberg--Marquardt)
+converges to a solution; with a source condition the convergence is
+order-optimal.
+\end{theorem}
+\begin{proof}[Sketch]
+This is the central result of nonlinear-ill-posed regularization theory;
+see Scherzer \cite{scherzer1995}, Hanke--Neubauer--Scherzer
+\cite{hanke1995}, and the monograph treatment of IRGN by
+Kaltenbacher--Neubauer--Scherzer \cite{kaltenbacher2008}
+(Bakushinskii's method \cite{bakushinskii1992}). The mechanism is
+Lemma~\ref{lem:tcc}: TCC makes $\norm{F}$ a global merit function on the
+ball, so the regularized Gauss--Newton step is a descent direction
+without spurious traps.
+\end{proof}
+
+\begin{remark}[Relation to Polyak--{\L}ojasiewicz]
+TCC is the inverse-problems form of the gradient-domination /
+Polyak--{\L}ojasiewicz inequality
+$\norm{\nabla\Psi_0}^{2}\ge2\mu(\Psi_0-\Psi_0^\star)$
+\cite{polyak1963,lojasiewicz1963,karimi2016}: both express ``every
+critical point is global''. The TCC implies a (local) gradient-domination
+estimate: writing $\Delta=c-c^\dagger$ and using \eqref{eq:tcc} with
+$F(c^\dagger)=0$ gives $\langle F(c),F'(c)\Delta\rangle\ge(1-\eta)
+\norm{F(c)}^{2}$, hence
+$\norm{\nabla\Psi_0(c)}\,\norm{\Delta}\ge\langle F'(c)^{\trc}F(c),
+\Delta\rangle\ge 2(1-\eta)\big(\Psi_0(c)-\Psi_0^\star\big)$,
+a P{\L}-type inequality on the ball (the precise modulus depends on
+$\norm\Delta$ and is not a universal constant; see
+\cite{karimi2016} for the general correspondence). Neither condition is
+implied by magnitude bounds; both fail in the same regimes.
+\end{remark}
+
+\section{Certificate I: a checkable convex regime}\label{sec:convex}
+
+TCC is rarely verifiable a priori. The following is a fully constructive
+substitute for the \emph{regularized} problem.
+
+\begin{theorem}[Global strong convexity threshold]\label{thm:convex}
+Assume \textup{(A1)}--\textup{(A2)} and let $R=\sup_{\mathcal
+C}\norm{F}<\infty$ (finite by Lemma~\ref{lem:KT}). If
+\begin{equation}
+\lambda\;>\;\lambda_{\mathrm{cvx}}\;:=\;\frac{R\,K_T}{\sigma_{\min}(\Omega)},
+\label{eq:lamcvx}
+\end{equation}
+then $\Psi_\lambda$ is strongly convex on the convex set $\mathcal C$
+with modulus $\lambda\sigma_{\min}(\Omega)-RK_T>0$. Consequently
+$\Psi_\lambda$ has a \emph{unique} minimizer on $\mathcal C$, and any
+descent method (gradient descent, Gauss--Newton, Levenberg--Marquardt)
+from \emph{any} initial point converges to it q-linearly.
+\end{theorem}
+
+\begin{proof}
+$\nabla^{2}\Psi_\lambda(c)=G(c)+\sum_{i}F_i(c)\nabla^{2}F_i(c)
++\lambda\Omega$. The middle term has norm
+$\le\norm{F(c)}\sup_i\norm{\nabla^{2}F_i}\le R\,K_T$ on $\mathcal C$
+(Lemma~\ref{lem:KT}). Since $G\succeq0$ and, by Weyl,
+$\lambda_{\min}(\lambda\Omega)=\lambda\sigma_{\min}(\Omega)$,
+\[
+\nabla^{2}\Psi_\lambda \succeq
+\big(\lambda\sigma_{\min}(\Omega)-RK_T\big)\,I \succ 0
+\]
+whenever \eqref{eq:lamcvx} holds. Strong convexity on the convex
+$\mathcal C$ gives uniqueness; global q-linear convergence of descent
+methods from any start is the standard strongly-convex guarantee
+\cite[Ch.~2]{nesterov2004}.
+\end{proof}
+
+\begin{corollary}[A surrogate global certificate]\label{cor:surr}
+For $\lambda\ge\lambda_{\mathrm{cvx}}$ the global minimizer of
+$\Psi_\lambda$ is computable with a \emph{single} solve and a
+\emph{certificate} (positive definiteness of $\nabla^{2}\Psi_\lambda$,
+checkable by one smallest-eigenvalue estimate). No landscape assumption
+and no TCC is needed.
+\end{corollary}
+
+The price: this is the global of the \emph{heavily regularized} surrogate,
+biased toward the prior. The operational object is
+$\hat c(\lambda_{\min})$.
+
+\section{Certificate II: continuation and per-run certification}
+\label{sec:path}
+
+Define the solution path $\lambda\mapsto c^\star(\lambda)$ by the
+stationarity map
+$\Theta(c,\lambda):=J(c)^{\trc}F(c)+\lambda\Omega c=0$.
+
+\begin{theorem}[Per-run path certificate]\label{thm:path}
+Suppose $c^\star(\lambda_{\mathrm{cvx}})$ is the unique minimizer of
+Theorem~\ref{thm:convex}, and along a continuation
+$\lambda:\lambda_{\mathrm{cvx}}\to\lambda_{\min}$ the regularized Hessian
+satisfies $\sigma_{\min}\big(\nabla^{2}\Psi_\lambda(c^\star(\lambda))\big)
+\ge\mu>0$. Then $c^\star(\cdot)$ is a $C^{1}$, locally unique branch on
+$[\lambda_{\min},\lambda_{\mathrm{cvx}}]$, and $c^\star(\lambda_{\min})$
+is a strict local minimizer of $\Psi_{\lambda_{\min}}$ continuously
+connected to the certified convex global. It is \emph{the} global
+minimizer iff no minimizer on a disconnected branch has lower value ---
+a condition the run can \emph{test} (multistart / monitoring) but not
+\emph{prove} a priori.
+\end{theorem}
+
+\begin{proof}
+$\partial_c\Theta=\nabla^{2}\Psi_\lambda$ is nonsingular along the path
+by hypothesis, so the implicit function theorem
+\cite{ortega1970,allgower1990} yields a unique $C^{1}$ branch
+$c^\star(\lambda)$ on the interval, with no fold (a fold requires
+$\sigma_{\min}\to0$). At $\lambda_{\mathrm{cvx}}$ the branch coincides
+with the unique global of Theorem~\ref{thm:convex}; by continuity it
+remains a strict local minimizer (positive-definite Hessian) throughout.
+Global optimality at $\lambda_{\min}$ would require excluding a distinct
+branch of lower value; nonconvexity permits such a branch, and its
+absence is exactly the part not certifiable from
+\eqref{eq:KT}--\eqref{eq:lamcvx} (Example~\ref{ex:scalar}).
+\end{proof}
+
+\begin{remark}[Honest scope]
+Theorem~\ref{thm:path} is a genuine \emph{per-run, a-posteriori}
+certificate: monitor $\sigma_{\min}$ along the homotopy; if it stays
+$\ge\mu$, the produced solution is certified \emph{connected to the
+certified convex global}; if a fold is detected, the method reports
+``uncertified'' rather than a silent wrong answer. This is the strongest
+guarantee available without assuming TCC or paying exponential cost
+(\S\ref{sec:ceiling}).
+\end{remark}
+
+\section{Identifiability and the impossibility wall}\label{sec:ident}
+
+Let $M(c)=J(c)^{\trc}J(c)$ be the Fisher information \cite{rao1945}.
+Curvature (TCC, $K_T$) is irrelevant if $M$ is rank deficient: that is a
+\emph{rank}, not a \emph{shape}, pathology, and it is fatal.
+
+\begin{theorem}[Cram\'er--Rao impossibility]\label{thm:cr}
+Let $0\neq v\in\ker F'(c^\star)\cap E$, $E$ the EA-coefficient subspace.
+Then: \textup{(i)} $M(c^\star)$ is singular with $M(c^\star)v=0$, and the
+Gauss--Newton (information) model of the misfit is flat along $v$, so the
+parameter combination $\langle v,\cdot\rangle$ is not locally identifiable
+from the data; \textup{(ii)} no unbiased estimator has finite variance
+along $v$. No choice of $\lambda$, seed, or solver creates the missing
+information.
+\end{theorem}
+
+\begin{proof}
+(i) $M(c^\star)=F'(c^\star)^{\trc}F'(c^\star)$, so
+$M(c^\star)v=F'(c^\star)^{\trc}\big(F'(c^\star)v\big)=0$. The
+Gauss--Newton model $c\mapsto\tfrac12\norm{F(c^\star)+F'(c^\star)(c-
+c^\star)}^{2}$ is constant along $c^\star+\spn\{v\}$ (since
+$F'(c^\star)v=0$); equivalently the data carry no first-order information
+about $\langle v,\cdot\rangle$. (ii) The Cram\'er--Rao inequality states
+that any unbiased estimator obeys
+$\operatorname{Cov}(\hat c)\succeq M^{+}$ on $\operatorname{range}M$ and
+is \emph{unconstrained} (infinite variance) on $\ker M$
+\cite{rao1945,walter1997}; with $Mv=0$,
+$v^{\trc}\operatorname{Cov}(\hat c)v$ is unbounded. A Tikhonov term
+biases the estimate toward the prior along $v$ but injects no data
+information into $\ker M$, so it cannot restore identifiability --- only a
+sensor change can (\S\ref{sec:multi}).
+\end{proof}
+
+\begin{remark}
+TCC failure ($\eta\ge1$, curvature) and identifiability failure
+($\ker M\neq\{0\}$, rank) are orthogonal. The former is repaired by
+continuation/reformulation; the latter is irreparable for that sensor
+configuration --- it must be reported, not optimized around.
+\end{remark}
+
+\section{Multisensor fusion}\label{sec:multi}
+
+Stack heterogeneous channels $F=(F_1;\dots;F_S)$ (radar:
+$[\rho,\mathrm{az},\mathrm{el},\dot\rho]$, nonlinear; optics: angles,
+nonlinear; position fix: linear in $r$; accelerometer: affine in $a$).
+Two effects are decisive and provable.
+
+\begin{lemma}[A near-linear channel can only lower $\eta$]\label{lem:stack}
+Let $F=(F_1;F_2)$ with $F_2$ affine. If $F_1$ satisfies the TCC with
+constant $\eta_1$ on $B_\rho$, then the stacked $F$ satisfies it with
+\[
+\eta\;\le\;\eta_1\,\frac{\norm{\Delta F_1}}
+{\sqrt{\norm{\Delta F_1}^{2}+\norm{\Delta F_2}^{2}}}\;\le\;\eta_1,
+\]
+where $\Delta F_j=F_j(c)-F_j(\tilde c)$; strict decrease whenever
+$\Delta F_2\neq0$.
+\end{lemma}
+
+\begin{proof}
+$F_2$ affine $\Rightarrow F_2(c)-F_2(\tilde c)-F_2'(c-\tilde c)=0$, so the
+linearization remainder of the stack equals that of $F_1$:
+$\norm{R(F)}=\norm{R(F_1)}\le\eta_1\norm{\Delta F_1}$. The denominator in
+\eqref{eq:tcc} is
+$\norm{\Delta F}=\sqrt{\norm{\Delta F_1}^{2}+\norm{\Delta F_2}^{2}}
+\ge\norm{\Delta F_1}$. Divide.
+\end{proof}
+
+Thus fusing a position fix or an accelerometer --- channels affine (or
+nearly so) in the unknowns --- \emph{provably} contracts the cone
+constant and can move a TCC-failing radar-only problem into the
+TCC-holding regime where Theorem~\ref{thm:irgn} and the certificates of
+\S\S\ref{sec:convex}--\ref{sec:path} apply.
+
+\begin{proposition}[Two radars restore identifiability]\label{prop:tworad}
+In the degenerate single-radar, range-rate-on configuration, the
+instantaneous measurement directions are the line-of-sight unit vector
+and its derivative; the EA component the arc geometry leaves orthogonal
+to the excited \textup{(LOS, $\dot{\text{LOS}}$)} directions lies in
+$\ker F'\cap E$ (Theorem~\ref{thm:cr} then applies). Adding a second
+radar with non-collinear lines of sight makes the per-epoch measurement
+directions span $\R^{3}$, so generically $\ker F'\cap E=\{0\}$:
+identifiability is restored by parallax.
+\end{proposition}
+\begin{proof}[Sketch]
+The radar Jacobian rows are the LOS unit vector and its derivative; their
+span has dimension $\le2$ per epoch for one station, $=3$ for two
+non-collinear stations. The persistent EA subspace excited over the arc
+then meets $\ker F'$ trivially; a standard observability/rank argument
+\cite{walter1997} completes it.
+\end{proof}
+
+\begin{remark}[The $\sigma$-ladder is a TCC-restoring continuation]
+Down-weighting the curved, ill-conditioned range-rate channel and
+reintroducing it as the iterate approaches truth is exactly a homotopy
+that keeps the \emph{effective} stacked $\eta<1$ along the path
+(Lemma~\ref{lem:stack} with a schedule), i.e.\ an instance of
+\S\ref{sec:path} with continuation in the data weighting rather than in
+$\lambda$. Its path-dependence is the requirement to stay on the regular
+branch of Theorem~\ref{thm:path}.
+\end{remark}
+
+\section{Reformulations that restore the hypotheses}\label{sec:reform}
+
+Rather than \emph{assume} TCC, one can change $F$ so the certifiable
+conditions \emph{hold}.
+
+\begin{lemma}[Multiple shooting eliminates the $e^{L_gT}$ amplification]
+\label{lem:ms}
+Partition $[0,T]$ into $S$ segments of length $\Delta=T/S$ and optimize
+jointly over per-node states and EA coefficients with continuity
+constraints. The per-segment forward map satisfies
+Lemma~\ref{lem:KT} with $T$ replaced by $\Delta$, hence per-segment
+$K_\Delta=Ce^{L_g\Delta}\to C$ as $S\to\infty$. The exponential
+nonlinearity amplification is removed; the coupling is by \emph{linear}
+constraints.
+\end{lemma}
+\begin{proof}
+Apply Lemma~\ref{lem:KT} on each segment $[t_{s},t_{s+1}]$ with arc
+length $\Delta$; the Gr\"onwall factor is $e^{L_g\Delta}$. Continuity
+$x(t_{s+1}^-)=x(t_{s+1}^+)$ is affine in the node states.
+\end{proof}
+
+This does not convexify the global problem (the constraint manifold is
+nonconvex), but it deletes the dominant source of nonconvexity
+(Example~\ref{ex:scalar}'s $\omega\ell$ with $\ell$ now $\Delta$), so the
+SQP subproblems are well-conditioned and the certificate of
+\S\ref{sec:convex} applies per segment. Pseudo-position pre-processing
+(triangulating radar to an ECEF point per epoch) makes $\mathcal H$
+affine, invoking Lemma~\ref{lem:stack}: it provably lowers $\eta$.
+
+\section{The decision procedure}\label{sec:proc}
+
+The preceding theorems compose into a constructive procedure whose every
+branch is proved.
+
+\begin{enumerate}
+\item \textbf{Identifiability.} Estimate $\sigma_{\min}$ of the EA block
+of $M$ on $\mathcal C$. If $\approx0$: \emph{stop} --- the global is a
+manifold, recovery impossible for this configuration
+(Theorem~\ref{thm:cr}). Fix by adding a non-collinear sensor
+(Proposition~\ref{prop:tworad}) or removing the degenerate channel.
+\item \textbf{Curvature.} From the force/state bounds compute $K_T$
+(Lemma~\ref{lem:KT}) and $\lambda_{\mathrm{cvx}}$ \eqref{eq:lamcvx}.
+\item \textbf{Certified surrogate.} Solve at
+$\lambda\ge\lambda_{\mathrm{cvx}}$ from any seed; verify
+$\nabla^{2}\Psi_\lambda\succ0$. This solve is certified global for the
+surrogate (Theorem~\ref{thm:convex}, Corollary~\ref{cor:surr}).
+\item \textbf{Continuation.} Decrease $\lambda\to\lambda_{\min}$,
+monitoring $\sigma_{\min}(\nabla^{2}\Psi_\lambda)\ge\mu$. If maintained:
+the result is certified connected to the surrogate global
+(Theorem~\ref{thm:path}). If a fold is detected: report
+\emph{uncertified}.
+\item \textbf{Reformulate on failure.} Multiple shooting / collocation
+(Lemma~\ref{lem:ms}) or pseudo-position (Lemma~\ref{lem:stack}) restores
+the hypotheses; re-enter at step~2. Selection among admissible runs uses
+a cross-validation criterion consistent under serial dependence
+\cite{racine2000,burman1994,arlot2010}.
+\end{enumerate}
+
+\noindent What is proved: steps 1, 3, 5 carry full a-priori proofs; step
+4 carries a per-run a-posteriori proof; the only unprovable element is
+the \emph{absence of a disconnected lower branch}, which is \emph{tested}
+(multistart agreement) and, by \S\ref{sec:ceiling}, cannot be eliminated
+in general.
+
+\section{The ceiling: what cannot be guaranteed, and why}
+\label{sec:ceiling}
+
+\begin{theorem}[No free unconditional global certificate]\label{thm:ceil}
+For the operational problem \eqref{eq:Psi} at $\lambda_{\min}$ there is
+no algorithm returning a certified global minimizer in time polynomial in
+$p$ unless $\mathrm{P}=\mathrm{NP}$.
+\end{theorem}
+\begin{proof}[Sketch]
+General nonconvex quadratic / nonlinear least-squares global optimization
+is NP-hard \cite{murty1987}; \eqref{eq:Psi} contains such instances as
+the linearization is varied. Assumption-free certified methods exist ---
+interval/Lipschitz branch-and-bound and the moment--sum-of-squares
+hierarchy \cite{neumaier2004,lasserre2001} --- but their cost is
+exponential in $p$ ($p\sim10^{2}$--$10^{3}$ here), and validated ODE
+enclosure suffers interval growth $\propto e^{L_gT}$ --- the \emph{same}
+quantity (Example~\ref{ex:scalar}) that bounds $K_T$ and breaks TCC.
+\end{proof}
+
+Every route --- TCC's $\eta$, the {\L}ojasiewicz $\mu$, the contraction
+threshold $\lambda_{\mathrm{cvx}}$, the interval-wrapping rate, the
+path-fold likelihood --- is governed by the single intrinsic quantity
+$\sim e^{L_gT}$. One therefore cannot escape it by changing proof
+technique; one can only (i) shrink it by reformulation
+(\S\ref{sec:reform}, Lemma~\ref{lem:ms}), (ii) certify a regularized
+surrogate unconditionally (\S\ref{sec:convex}), (iii) certify a single
+run a posteriori (\S\ref{sec:path}), or (iv) report impossibility when
+the obstruction is rank, not curvature (\S\ref{sec:ident}). That
+quadruple \emph{is} the answer to ``how do I ensure, and prove, the
+global EA?'': a conditional, constructive, per-run certificate, with a
+sharp and honest statement of its limits.
+
+\begin{thebibliography}{99}
+\bibitem{tikhonov1977} A.~N.~Tikhonov, V.~Y.~Arsenin.
+ \textit{Solutions of Ill-Posed Problems}. Winston, 1977.
+\bibitem{engl1996} H.~W.~Engl, M.~Hanke, A.~Neubauer.
+ \textit{Regularization of Inverse Problems}. Kluwer, 1996.
+\bibitem{hairer1993} E.~Hairer, S.~P.~N\o rsett, G.~Wanner.
+ \textit{Solving ODEs I}, 2nd ed. Springer, 1993.
+\bibitem{ortega1970} J.~M.~Ortega, W.~C.~Rheinboldt. \textit{Iterative
+ Solution of Nonlinear Equations in Several Variables}. Academic, 1970.
+\bibitem{deuflhard2004} P.~Deuflhard. \textit{Newton Methods for
+ Nonlinear Problems}. Springer, 2004.
+\bibitem{nocedal2006} J.~Nocedal, S.~J.~Wright. \textit{Numerical
+ Optimization}, 2nd ed. Springer, 2006.
+\bibitem{scherzer1995} O.~Scherzer. Convergence criteria of iterative
+ methods\dots\ \textit{J.~Math.\ Anal.\ Appl.} 194:911--933, 1995.
+\bibitem{hanke1995} M.~Hanke, A.~Neubauer, O.~Scherzer. A convergence
+ analysis of the Landweber iteration for nonlinear ill-posed problems.
+ \textit{Numer.\ Math.} 72:21--37, 1995.
+\bibitem{kaltenbacher2008} B.~Kaltenbacher, A.~Neubauer, O.~Scherzer.
+ \textit{Iterative Regularization Methods for Nonlinear Ill-Posed
+ Problems}. de~Gruyter, 2008.
+\bibitem{bakushinskii1992} A.~B.~Bakushinskii. The problem of the
+ convergence of the iteratively regularized Gauss--Newton method.
+ \textit{Comput.\ Math.\ Math.\ Phys.} 32:1353--1359, 1992.
+\bibitem{polyak1963} B.~T.~Polyak. Gradient methods for minimizing
+ functionals. \textit{Zh.\ Vychisl.\ Mat.} 3:643--653, 1963.
+\bibitem{lojasiewicz1963} S.~{\L}ojasiewicz. Une propri\'et\'e
+ topologique des sous-ensembles analytiques r\'eels. 1963.
+\bibitem{karimi2016} H.~Karimi, J.~Nutini, M.~Schmidt. Linear convergence
+ of gradient and proximal-gradient methods under the
+ Polyak--{\L}ojasiewicz condition. \textit{ECML PKDD}, 2016.
+\bibitem{nesterov2004} Y.~Nesterov. \textit{Introductory Lectures on
+ Convex Optimization}. Kluwer, 2004.
+\bibitem{rao1945} C.~R.~Rao. Information and accuracy attainable in the
+ estimation of statistical parameters. \textit{Bull.\ Calcutta Math.\
+ Soc.} 37:81--89, 1945.
+\bibitem{walter1997} E.~Walter, L.~Pronzato. \textit{Identification of
+ Parametric Models from Experimental Data}. Springer, 1997.
+\bibitem{allgower1990} E.~L.~Allgower, K.~Georg. \textit{Numerical
+ Continuation Methods}. Springer, 1990.
+\bibitem{racine2000} J.~Racine. Consistent cross-validatory
+ model-selection for dependent data: hv-block cross-validation.
+ \textit{J.~Econometrics} 99:39--61, 2000.
+\bibitem{burman1994} P.~Burman, E.~Chow, D.~Nolan. A cross-validatory
+ method for dependent data. \textit{Biometrika} 81:351--358, 1994.
+\bibitem{arlot2010} S.~Arlot, A.~Celisse. A survey of cross-validation
+ procedures for model selection. \textit{Statist.\ Surv.} 4:40--79, 2010.
+\bibitem{murty1987} K.~G.~Murty, S.~N.~Kabadi. Some NP-complete problems
+ in quadratic and nonlinear programming. \textit{Math.\ Program.}
+ 39:117--129, 1987.
+\bibitem{neumaier2004} A.~Neumaier. Complete search in continuous global
+ optimization and constraint satisfaction. \textit{Acta Numerica}
+ 13:271--369, 2004.
+\bibitem{lasserre2001} J.~B.~Lasserre. Global optimization with
+ polynomials and the problem of moments. \textit{SIAM J.~Optim.}
+ 11:796--817, 2001.
+\end{thebibliography}
+
+\end{document}

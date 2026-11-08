@@ -1,0 +1,26 @@
+The forced ``glide'' reentry is the EA test bed; \code{glide\_common.py}
+rebuilds it from the committed \code{glide\_fixture.json} using only the
+public API. With clean 100\,Hz observations we recover the EA several ways
+and re-propagate, RMSE vs truth.
+
+Formally these solve the regularized nonlinear least
+squares~\eqref{eq:opt} over the B-spline coefficients~\eqref{eq:spline};
+knot spacing follows the bias bound~\eqref{eq:knot}
+(Theorem~\ref{thm:spline}) and GN follows Proposition~\ref{prop:basin}.
+See the Mathematical Foundations chapter.
+
+\examplenote{\code{examples/py/ex04\_ea\_clean\_glide.py} (shared helper:
+\code{examples/py/glide\_common.py})}
+\exfile{examples/py/ex04_ea_clean_glide.py}{Python}
+\resultfile{results/ea_clean_glide_py.csv}{Clean-EA recovery by method.}
+
+\textbf{Read every row against the first one.} The
+\code{no\_ea\_baseline} row is the ``do nothing'' control: glide IC with
+EA=0 is ${\sim}35\,$km off truth --- the signal the EA carries.
+
+The lesson is then \textbf{method selection}. Bare B-spline POS without GN
+reprops at ${\sim}1.5\,$m (identical to C++) --- ${\sim}24000\times$ better
+than the 35\,km baseline, and GN sharpens it another ${\sim}200\times$ to a
+few millimeters (GN is on by default; this row disables it). VEL
+(${\sim}0.09\,$m) and ACC (${\sim}0.008\,$m) recover sub-meter too on clean
+data; \emph{noisy} data is the configuration-sensitive regime (Chapters 5, 8).

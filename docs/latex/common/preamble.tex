@@ -1,0 +1,66 @@
+% Shared preamble for both tutorial PDFs.
+% Uses `listings` (pure-TeX) — NOT minted — so Tectonic needs no shell-escape.
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{amsmath,amssymb}
+\usepackage{amsthm}
+\usepackage{mathtools}
+\usepackage{booktabs}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage[hidelinks]{hyperref}
+\usepackage{fancyhdr}
+\usepackage{parskip}
+
+% Theorem environments for the mathematical-report sections.
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}[chapter]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{assumption}[theorem]{Assumption}
+\theoremstyle{remark}
+\newtheorem*{remark}{Remark}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\norm}[1]{\left\lVert#1\right\rVert}
+\newcommand{\abs}[1]{\left\lvert#1\right\rvert}
+\DeclareMathOperator*{\argmin}{arg\,min}
+
+\definecolor{kw}{rgb}{0.13,0.29,0.53}
+\definecolor{cmt}{rgb}{0.40,0.40,0.40}
+\definecolor{str}{rgb}{0.16,0.46,0.16}
+\definecolor{bg}{rgb}{0.97,0.97,0.97}
+
+\lstdefinestyle{ball}{
+  backgroundcolor=\color{bg},
+  basicstyle=\ttfamily\footnotesize,
+  keywordstyle=\color{kw}\bfseries,
+  commentstyle=\color{cmt}\itshape,
+  stringstyle=\color{str},
+  numbers=left, numberstyle=\tiny\color{cmt}, numbersep=6pt,
+  breaklines=true, showstringspaces=false, frame=single,
+  framesep=4pt, tabsize=2, captionpos=b,
+}
+\lstset{style=ball}
+
+\pagestyle{fancy}\fancyhf{}
+\rhead{\thepage}\lhead{\leftmark}
+\renewcommand{\headrulewidth}{0.2pt}
+
+% \exfile{relative-path}{language} — verbatim, compiled-and-run source.
+\newcommand{\exfile}[2]{%
+  \lstinputlisting[language=#2]{#1}}
+
+% \resultfile{results/file.(json|csv)}{caption} — the actual generated
+% result, shown verbatim (monospace, framed). If it has not been
+% regenerated yet, a placeholder is shown so the PDF still compiles.
+\newcommand{\resultfile}[2]{%
+  \par\medskip\noindent\textbf{Result.} \textit{#2}\par\nopagebreak
+  \IfFileExists{#1}{%
+    \lstinputlisting[basicstyle=\ttfamily\scriptsize,numbers=none,
+      backgroundcolor=\color{bg},frame=single]{#1}}{%
+    \begin{center}\fbox{\small\itshape
+      not yet generated — run \texttt{docs/latex/regen.sh}}\end{center}}%
+  \medskip}

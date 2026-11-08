@@ -1,0 +1,26 @@
+Two ground radars track the forced glide. We synthesize clean
+[range, az, el, range-rate] observations via \code{RadarObs.predict}, fuse
+with \code{estimate\_ea\_smoother} (a \textbf{GM-RTS reduced-dynamic
+smoother}: an EKF forward pass and a Rauch--Tung--Striebel backward pass
+over a Gauss--Markov empirical-acceleration state; NIS-selected prior,
+measured range-rate budget), and re-propagate. A second case adds a
+$50\,\mu$rad astrometric camera (\code{OpticsObs}, az/el bearings only)
+co-located with radar 0 --- the same smoother fuses the extra modality
+with no configuration change. The ENU rotation is built analytically from
+the fixture's station lat/lon (matching the C++
+\code{ecef\_to\_enu\_rotation}).
+
+\examplenote{\code{examples/py/ex07\_multisensor.py}}
+\exfile{examples/py/ex07_multisensor.py}{Python}
+\resultfile{results/multisensor_rmse_py.csv}{2-radar fused EA, then
+2-radar + camera, reprop vs truth.}
+
+\pitfall{Radar\,$\rightarrow$\,EA is \emph{observability-limited}: the
+information limit for this 2-radar geometry is ${\sim}9\text{--}17\,$m, so
+the ${\sim}6\,$m radar-only reprop is at the geometry floor --- and the
+remedy is more \emph{information}, not more tuning: the camera case drops
+the reprop ${\sim}20\times$ to ${\sim}0.3\,$m. The truth-free \code{nis}
+($1$ ideal, ${<}1$ conservative) is the noise-model health check. The
+smoother is deterministic, so the Python and C++ numbers match exactly.
+Use $\ge 2$ radars, and add a camera/fix when the geometry floor is not
+good enough; single-radar with range-rate on is degenerate.}

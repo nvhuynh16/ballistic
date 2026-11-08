@@ -1,0 +1,6 @@
+obs_type,method,knot_s,obs_hz,n_obs,reprop_rmse_m,ok,iterations
+---,no_ea_baseline,0.000000,100,18168,35315.782808,true,0
+POS,bspline_no_gn,2.000000,100,18168,1.457594,true,14
+POS,bspline_gn,2.000000,100,18168,0.007044,true,14
+VEL,bspline_gn,2.000000,100,18168,0.093430,true,43
+ACC,bspline_irgn,2.000000,100,18168,0.007575,true,18

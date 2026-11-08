@@ -1,0 +1,22 @@
+Three setup mistakes that silently cost accuracy, made concrete.
+
+\examplenote{\code{examples/cpp/ex09\_pitfalls.cpp}}
+\exfile{examples/cpp/ex09_pitfalls.cpp}{C++}
+\resultfile{results/ex09_pitfalls.json}{Measured pitfall deltas + status.}
+
+\begin{enumerate}
+\item \textbf{Wrong ITRF realization} --- a measured ${\sim}7\,$mm LEO
+divergence over one hour (ITRF2014 vs ITRF2020). Small, but real;
+use the realization that matches your reference data.
+\item \textbf{Missing EOP} --- you cannot un-load EOP at runtime, so the
+actionable check is \code{InitResult.eop\_loaded}. Without it UT1$-$UTC
+defaults to 0 $\Rightarrow$ ${\sim}3\,$m LEO error.
+\item \textbf{Stale leap seconds} --- the embedded table covers through
+2025. Querying later dates without a refreshed \code{leap-seconds.list}
+gives seconds of TAI/UTC error $\Rightarrow$ kilometers of position.
+\end{enumerate}
+
+\pitfall{A subtler one, surfaced while building this tutorial: returning a
+\code{TrajectoryInterpolator} from a scope where its \code{Trajectory} is
+destroyed is a dangling reference (crash). Keep the \code{Trajectory} alive
+for the interpolator's lifetime.}

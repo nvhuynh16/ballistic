@@ -1,0 +1,270 @@
+This chapter states, as a self-contained mathematical report, the inverse
+problem the empirical-acceleration (EA) estimators solve, the optimization
+that is actually minimized, and the theory that justifies the chosen
+parameters. Where a rigorous \emph{global} guarantee does not exist for
+this nonconvex problem we say so explicitly and give the rigorous
+\emph{local} statement instead --- intellectual honesty is part of the
+specification here.
+
+\section{The estimation problem}
+
+\begin{definition}[Forced dynamics]
+Let $x(t)=(r(t),v(t))\in\R^{6}$ be the ECEF/GCRS state. The motion obeys
+\begin{equation}
+\dot r = v,\qquad \dot v = g(r,t) + a(t),
+\label{eq:dyn}
+\end{equation}
+where $g$ is the deterministic force model (gravity, third body, SRP,
+relativity; \cite{hairer1993}) and $a:[0,T]\to\R^{3}$ is the unknown
+empirical acceleration. Write the flow $x(t)=\Phi_{0\to t}(x_0;a)$.
+\end{definition}
+
+We observe $y_i = \mathcal H\big(\Phi_{0\to t_i}(x_0;a)\big)+\varepsilon_i$,
+$i=1,\dots,N$, with $\varepsilon_i\sim\mathcal N(0,\Sigma_i)$ and
+$\mathcal H$ the sensor model (position fix $r$; radar
+$[\rho,\mathrm{az},\mathrm{el},\dot\rho]$; etc.). Recovering $a$ from
+$\{y_i\}$ is a nonlinear, ill-posed inverse problem
+\cite{tikhonov1977,engl1996}.
+
+\paragraph{Finite parameterization.} Expand the unknown in a degree-$d$
+B-spline basis on a knot grid of spacing $h$,
+\begin{equation}
+a(t)=\sum_{k=1}^{n} c_k\,B_{k,d}(t),\qquad c\in\R^{3n},
+\label{eq:spline}
+\end{equation}
+$\{B_{k,d}\}$ the B-spline functions \cite{deboor2001,schumaker2007}. For
+the position path the spline carries the position correction $\delta p(t)$
+and $a=\delta p''$; for velocity, $a=(\,\cdot\,)'$; for acceleration the
+spline is $a$ itself (the $d^{2}/dt^{2}$, $d/dt$, $d^{0}$ extraction).
+
+\section{The optimization that is solved}
+
+\begin{definition}[Regularized nonlinear least squares]
+With residuals $F(c)_i=\Sigma_i^{-1/2}\big(y_i-\mathcal H(\Phi_{0\to
+t_i}(x_0;c))\big)$ and roughness operator $\Omega=L^{\!\top}\!L$
+($\Omega$ the order-$m$ spline penalty Gram matrix), the estimator is
+\begin{equation}
+\hat c(\lambda)=\argmin_{c\in\R^{3n}}\;
+ \tfrac12\norm{F(c)}_2^{2}\;+\;\tfrac{\lambda}{2}\,c^{\!\top}\Omega\,c .
+\label{eq:opt}
+\end{equation}
+$m=3$ for the position path (penalizing
+$\norm{a}^{2}=\norm{\delta p''}^{2}$), $m=1$ for velocity/acceleration.
+\end{definition}
+
+The collocation variant transcribes \eqref{eq:dyn} as trapezoidal equality
+constraints at collocation nodes and solves the resulting KKT system by
+SQP \cite{betts2010,nocedal2006}; the multi-sensor variant stacks
+heterogeneous $\mathcal H$ blocks. All share the structure
+\eqref{eq:opt}. (The collocation transcription lost to the B-spline and
+smoother paths in every measured scenario and is not offered by the
+library. The
+production fusion path is the GM-RTS smoother of Chapter~7, which solves
+the same estimation problem sequentially.)
+
+\section{Identifiability: when (and only when) $a$ is recoverable}
+
+Let $J(c)=F'(c)$ be the variational (state-transition) Jacobian and
+$M(c)=J^{\!\top}\!J$ the Fisher information \cite{rao1945}.
+
+\begin{theorem}[Cramér--Rao impossibility]
+\label{thm:cr}
+If the EA block of $M(c)$ is rank deficient, then for \emph{every}
+unbiased estimator of the corresponding EA coefficients the covariance is
+unbounded; no choice of $\lambda$, seed, or solver recovers them
+\cite{rao1945,walter1997}.
+\end{theorem}
+
+\begin{remark}
+This is the precise statement of the documented limits: single radar with
+range-rate on is rank deficient in the EA block (the free state variables
+span the rate residual), so it is \emph{structurally} unrecoverable ---
+use two or more radars or rate-off. Noisy ACC at artificially large
+$\sigma$ sits near this edge (double integration of acceleration noise
+into position; Chapter~5). These are impossibility theorems, not tuning
+failures; the project's attempts to defeat them by regularization were
+empirically falsified, consistent with Theorem~\ref{thm:cr}. (Noisy VEL,
+by contrast, was \emph{not} at this edge: its earlier divergence was an
+implementation defect --- a truncation-guard line-search freeze --- fixed
+in 2026-07, after which bare defaults recover it sub-meter.)
+\end{remark}
+
+\section{Why the parameters are correct}
+
+\subsection{Knot spacing from spline approximation error}
+
+\begin{theorem}[Spline bias bound \cite{deboor2001,schumaker2007}]
+\label{thm:spline}
+For $f\in C^{d+1}$ the best degree-$d$ spline on knot spacing $h$ obeys
+$\norm{f-s_h}_\infty \le C_d\,h^{d+1}\,\norm{f^{(d+1)}}_\infty .$
+\end{theorem}
+
+With the quintic default $d=5$ the bias is $O(h^{6})$. The truth EA has
+characteristic timescale $\tau$ (Gaussian width $\mathrm{FW}=35$\,s,
+oscillation period $\mathrm{LP}=100$\,s $\Rightarrow$ $\tau\approx
+16\text{--}35$\,s, so $\norm{a^{(d+1)}}\sim\norm a/\tau^{d+1}$). Requiring
+the spline bias not to exceed the noise-induced floor $\kappa\sigma$,
+\begin{equation}
+C_d\Big(\tfrac{h}{\tau}\Big)^{d+1}\norm a \le \kappa\sigma
+\;\Longrightarrow\;
+h \;\lesssim\; \tau\Big(\tfrac{\kappa\sigma}{C_d\norm a}\Big)^{\!1/(d+1)} .
+\label{eq:knot}
+\end{equation}
+The rule of thumb $h\approx\tau/4$ is \eqref{eq:knot} at $d=5$ with the
+constants absorbed; the CV knot grid $\{0.5,\dots,16\}$\,s brackets it.
+This is the bound behind the knot parameter.
+
+\subsection{Regularization strength from bias--variance}
+
+For the penalized linear subproblem
+$\hat c(\lambda)=(G+\lambda\Omega)^{-1}J^{\!\top}\!y$, $G=J^{\!\top}\!J$,
+the risk splits into a bias that increases in $\lambda$ and a variance that
+decreases in $\lambda$; smoothing-spline theory
+\cite{wahba1990,craven1979} gives an order-optimal minimizer obeying a
+scaling $\lambda^\star \asymp (\sigma^{2}/N)^{2m/(2m+1)}$. Hence the
+optimal $\lambda$ \emph{moves with the noise level and sample size}; this
+is why the CV grid spans many decades
+($\lambda_0\in\{1,10^{-1},10^{-2}\}$,
+$\lambda_{\min}\in\{10^{-12},\dots,10^{-2}\}$) and why
+\texttt{noise\_sigma} is supplied. Generalized cross-validation
+\cite{golub1979} and the dependent-data variant below estimate this risk
+without truth.
+
+\subsection{The Gauss--Newton basin, stated honestly}
+
+The iteratively-regularized Gauss--Newton (IRGN) iteration is
+\begin{equation}
+c_{k+1}=c_k-\big(G_k+\lambda_k\Omega\big)^{-1}
+ \big(J_k^{\!\top}F(c_k)+\lambda_k\Omega c_k\big),\qquad
+\lambda_k=\max(\lambda_{\min},\lambda_0 q^{k}).
+\label{eq:irgn}
+\end{equation}
+This is Bakushinskii's IRGN for nonlinear ill-posed problems; under a
+tangential-cone condition and a source condition it converges, with
+order-optimal rates \cite{bakushinskii1992,kaltenbacher2008}. The
+\emph{decreasing} schedule is a Tikhonov continuation/homotopy --- start
+strongly regularized (large basin, near-quadratic) and relax toward
+$\lambda_{\min}$ (accurate, ill-conditioned); the same graduated-continuation
+principle as multiscale waveform inversion \cite{bunks1995} and the
+multi-sensor $\sigma$-ladder.
+
+\begin{lemma}[Bounded EA gives an explicit curvature bound]
+\label{lem:curv}
+Assume \textup{(A1)} $\norm{a}_\infty\le A$ on $[0,T]$ and
+\textup{(A2)} the arc terminates above ground, so $r(t)$ stays in a
+compact annulus $[r_{\min},r_{\max}]$ ($r_{\min}>0$). Because $a$ enters
+\eqref{eq:dyn} \emph{affinely} in $c$, the only curvature of
+$c\mapsto\Phi_{0\to t}(x_0;c)$ comes from the force-model term
+$\partial^{2}f/\partial x^{2}$ (essentially $\partial^{3}V/\partial
+r^{3}\sim\mu/r^{4}$ plus harmonics), which is real-analytic and bounded on
+the annulus. Propagating through the state-transition matrix and applying
+Gr\"onwall's inequality \cite{hairer1993} yields a finite, in-principle
+explicit second-derivative bound
+\begin{equation}
+\bar\omega \;\le\; K_T \;=\; C\,e^{\,L_g T},\qquad
+ L_g=\!\!\sup_{r\in[r_{\min},r_{\max}]}\!\!\norm{\partial f/\partial x},
+\label{eq:KT}
+\end{equation}
+with $C$ depending on $\norm{B}$, $T$ and the spline conditioning.
+\end{lemma}
+
+\begin{proposition}[Local convergence ball; regularization enlarges it]
+\label{prop:basin}
+Under the affine-covariant Lipschitz condition
+$\norm{(G+\lambda\Omega)^{-1}\big(J(c')-J(c)\big)(c'-c)}\le
+\omega(\lambda)\norm{c'-c}^{2}$, the iteration \eqref{eq:irgn} converges
+q-linearly to a stationary point from any $c_0$ with
+$\norm{c_0-\hat c}<2/\omega(\lambda)$ \cite{deuflhard2004,nocedal2006}.
+Moreover $\sigma_{\min}(G+\lambda\Omega)\ge\lambda\,\sigma_{\min}(\Omega)$,
+so $\omega(\lambda)\le \bar\omega/\big(\lambda\,\sigma_{\min}(\Omega)\big)$
+for a forward-map curvature constant $\bar\omega$, giving a convergence
+ball that grows with the regularization:
+\begin{equation}
+\rho(\lambda)\;=\;\frac{2}{\omega(\lambda)}\;\ge\;
+ \frac{2\,\lambda\,\sigma_{\min}(\Omega)}{\bar\omega}.
+\label{eq:rho}
+\end{equation}
+\end{proposition}
+
+\begin{proof}[Sketch]
+The first claim is the affine-covariant Newton--Kantorovich theorem
+\cite{deuflhard2004} applied to the regularized normal map. The bound
+$\sigma_{\min}(G+\lambda\Omega)\ge\lambda\sigma_{\min}(\Omega)$ is
+Weyl's inequality ($G\succeq0$); substituting into the definition of the
+affine-covariant constant gives \eqref{eq:rho}.
+\end{proof}
+
+\begin{remark}[What boundedness does and does not buy: three tiers]
+With bounded EA, Lemma~\ref{lem:curv} makes \eqref{eq:rho} rigorous
+\emph{with an explicit constant} $K_T$, not merely rigorous in form. The
+honest hierarchy is therefore:
+\begin{description}
+\item[(i) Existence --- provable.] A convergence ball of \emph{strictly
+positive} radius $\rho(\lambda)\ge 2\lambda\sigma_{\min}(\Omega)/K_T>0$
+exists, and grows with $\lambda$ exactly as \eqref{eq:rho} states. This is
+a genuine a-priori certificate, not an empirical observation.
+\item[(ii) Useful size --- not certifiable here.] $K_T\sim e^{L_gT}$ is
+exponentially conservative: $L_g$ is the gravity-gradient/Lyapunov
+stretching rate --- the same chaos timescale the hv-block gap
+(\S\ref{prop:cv}, below) is built around. For a benign arc the certified
+ball is operationally large; for the aggressive $\sim$184\,s glide it is
+correct but pessimistic by orders of magnitude versus the empirically
+observed basin (Kantorovich bounds are characteristically slack). Tightness
+is not recoverable from boundedness alone.
+\item[(iii) Globality --- false in general.] Kantorovich certifies a ball
+\emph{around a stationary point}; boundedness controls curvature
+\emph{within} a basin but says nothing about the \emph{number or
+separation} of basins of the nonconvex $\norm{F}^2$ landscape. Uniqueness
+of the global optimum is the separate question answered by identifiability
+(Theorem~\ref{thm:cr}), not by input boundedness; this project's
+``globality'' probes were empirically falsified, consistent with this
+tier. Where the tangential-cone condition holds the local ball upgrades to
+a substantial source-condition neighborhood
+\cite{kaltenbacher2008}; where it may fail far from truth, the
+$\lambda$-continuation/$\sigma$-ladder is exactly the remedy.
+\end{description}
+So: \emph{yes}, with bounded EA we can certify a basin and its
+$\lambda$-scaling; we \emph{cannot} certify it is tight or global. The
+specific $\lambda_0,q,\lambda_{\min}$ are then pinned not by the
+(conservative) a-priori $K_T$ but by the \emph{consistent}
+cross-validation objective below, which provably estimates out-of-sample
+risk.
+\end{remark}
+
+\subsection{hv-block CV: consistent selection under chaotic dependence}
+
+The ODE flow makes residuals serially dependent and, on reentry,
+chaotic. Ordinary $K$-fold CV is \emph{inconsistent} for model selection
+under serial dependence \cite{burman1994,arlot2010}. The hv-block scheme
+\cite{racine2000} removes a contiguous test block plus a gap of $g$ blocks
+on each side from training and is consistent provided the gap exceeds the
+dependence range --- for a chaotic flow, the decorrelation/Lyapunov
+timescale.
+
+\begin{proposition}[Selection consistency]
+\label{prop:cv}
+If the gap $g$ exceeds the chaos timescale of \eqref{eq:dyn}, hv-block CV
+yields a consistent estimate of predictive risk and hence selects the
+risk-minimizing hyperparameters as $N\to\infty$ \cite{racine2000}.
+\end{proposition}
+
+For the $\sim$184\,s glide the chaos timescale is $\approx$5--10\,s; the
+configuration $\texttt{hv\_n\_blocks}=18$ ($\approx$10\,s blocks),
+$\texttt{hv\_gap\_blocks}=1$ ($\approx$10\,s $>$ chaos timescale),
+interior test blocks, satisfies Proposition~\ref{prop:cv}. This is why
+those exact values are used, and why plain $K$-fold would be invalid here.
+
+\section{Empirical validation as hypothesis testing}
+
+The no-EA baseline $\norm{\Phi(x_0;0)-\Phi(x_0;a^\dagger)}\approx
+36\,\mathrm{km}$ is the signal energy; a recovered RMSE of $0.3$\,m is a
+signal-to-noise ratio $\sim10^{5}$. The noisy-null control (true
+$a^\dagger=0$, noisy data, hyperparameters chosen by the consistent CV of
+Proposition~\ref{prop:cv}) is a Type-I/specificity test of
+$H_0\!:a^\dagger=0$: the estimator returns $\norm{\hat a}\lesssim
+0.1\,\mathrm{m/s^2}$ and reprop $\sim$0.2--0.3\,m against the 36\,km
+scale, i.e.\ it does not reject $H_0$ with a phantom signal. Together
+these make the recovered numbers interpretable: large true SNR, controlled
+false-positive behavior, parameters chosen by a provably consistent
+criterion within the regularization-enlarged basin of
+Proposition~\ref{prop:basin}.

@@ -1,0 +1,13 @@
+% Shared macros / boilerplate for both tutorials.
+\newcommand{\Ballistic}{\textsc{Ballistic}}
+\newcommand{\code}[1]{\texttt{#1}}
+
+% Standard "this chapter's runnable example" framing.
+\newcommand{\examplenote}[1]{%
+  \medskip\noindent\fbox{\parbox{0.97\linewidth}{\small
+  \textbf{Runnable example.} #1 — it is compiled, executed, and the numbers
+  below are its actual output (no hand-typed values).}}\medskip}
+
+% A pitfall callout.
+\newcommand{\pitfall}[1]{%
+  \medskip\noindent{\color{kw}\textbf{Pitfall.}} #1\medskip}

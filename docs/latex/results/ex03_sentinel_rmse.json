@@ -1,0 +1,10 @@
+{
+  "mission": "Sentinel-1A",
+  "arc_s": 3600.0000,
+  "sample_s": 60.0000,
+  "cases": [
+    {"integrator": "RK45", "itrf": "ITRF2014", "pos_rmse_m": 0.1753, "radial_m": 0.0103, "along_m": 0.0150, "cross_m": 0.1744, "vel_rmse_mps": 0.0003, "n": 61},
+    {"integrator": "YOSHIDA8", "itrf": "ITRF2014", "pos_rmse_m": 0.1749, "radial_m": 0.0113, "along_m": 0.0166, "cross_m": 0.1737, "vel_rmse_mps": 0.0001, "n": 61},
+    {"integrator": "RK45", "itrf": "ITRF2020", "pos_rmse_m": 0.1765, "radial_m": 0.0080, "along_m": 0.0199, "cross_m": 0.1752, "vel_rmse_mps": 0.0003, "n": 61}
+  ]
+}

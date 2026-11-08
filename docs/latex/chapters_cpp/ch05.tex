@@ -1,0 +1,45 @@
+Real sensors are noisy and you do not know the truth, so hyperparameters
+must be chosen by cross-validation. \code{ea::CV\{\}} runs hv-block CV (no
+truth peeking), matching the deployment pipeline. We add Gaussian noise
+(POS 1.0\,m, VEL 0.25\,m/s, ACC 0.1\,m/s$^2$; fixed seeds) and run each
+\{obs, rate\} cell. GN (consistent-objective regularized, 2026-07) is
+default-ON and benefits POS and VEL alike; the ACC facade ignores it
+(circular --- \code{gn\_status} reports the skip).
+
+The solver is the iteratively-regularized Gauss--Newton
+iteration~\eqref{eq:irgn} (\cite{bakushinskii1992,kaltenbacher2008}); the
+decreasing $\lambda_k$ is the continuation that, by
+Proposition~\ref{prop:basin}, keeps the iterate inside the
+regularization-enlarged convergence ball. The hv-block split is
+\emph{provably consistent} for this serially-dependent/chaotic data
+(Proposition~\ref{prop:cv}, \cite{racine2000}) --- ordinary $K$-fold is
+not. The grid spans the bias--variance-optimal $\lambda$ scaling
+(\S\,Mathematical Foundations, \cite{wahba1990,craven1979}).
+
+\examplenote{\code{examples/cpp/ex05\_ea\_noisy\_glide.cpp}, one cell per
+process via \code{regen.sh} (every CV cell is minutes to tens of
+minutes; see the \code{wall\_min} column).}
+\exfile{examples/cpp/ex05_ea_noisy_glide.cpp}{C++}
+
+\resultfile{results/ea_noisy_pos_100.csv}{Noisy POS, 100 Hz, hv-block CV.}
+\resultfile{results/ea_noisy_pos_200.csv}{Noisy POS, 200 Hz, hv-block CV.}
+\resultfile{results/ea_noisy_vel_100.csv}{Noisy VEL, 100 Hz.}
+\resultfile{results/ea_noisy_vel_200.csv}{Noisy VEL, 200 Hz.}
+\resultfile{results/ea_noisy_acc_100.csv}{Noisy ACC, 100 Hz.}
+\resultfile{results/ea_noisy_acc_200.csv}{Noisy ACC, 200 Hz.}
+
+\pitfall{An earlier edition of this tutorial measured noisy VEL diverging
+outright (${\sim}29\,$km!) with bare public-API defaults. That was real,
+and it was \emph{fixed} in 2026-07: the arc-length auto-clamp removed the
+line-search freeze that blew VEL/ACC up on short arcs, and
+consistent-objective regularized GN is now default-ON for VEL. With
+current defaults, noisy VEL recovers ${\sim}0.4$--$0.5\,$m --- no research
+harness needed. The remaining honest limit is ACC at
+$\sigma=0.1\,$m/s$^2$ (${\sim}15\,$m at 100\,Hz, ${\sim}7\,$m at
+200\,Hz): that $\sigma$ is artificially
+large for an accelerometer (realistic $10^{-6}$--$10^{-2}\,$m/s$^2$,
+where sub-meter returns), and double-integrating acceleration noise costs
+the most position information (see the identifiability chapter). For
+scale, the no-EA baseline is ${\sim}35\,$km (Chapter 4). POS + GN +
+hv-block CV remains the most robust noisy path; higher sample rate helps
+every modality (200\,Hz $\ge$ 100\,Hz).}
