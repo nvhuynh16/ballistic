@@ -1335,7 +1335,7 @@ is_init = ballistic.is_initialized()
 status = ballistic.get_init_status()  # Returns InitResult
 
 # Version information
-version = ballistic.__version__  # e.g., "0.1.1"
+version = ballistic.__version__  # e.g., "0.1.2"
 ```
 
 #### `ballistic.initialize_with_config()`
@@ -2806,15 +2806,15 @@ sub-namespaces); default values are in `ballistic::defaults`.
 
 int major = ballistic::VERSION_MAJOR;  // 0
 int minor = ballistic::VERSION_MINOR;  // 1
-int patch = ballistic::VERSION_PATCH;  // 0
-std::string version = ballistic::VERSION_STRING;  // "0.1.1"
+int patch = ballistic::VERSION_PATCH;  // 2
+std::string version = ballistic::VERSION_STRING;  // "0.1.2"
 ```
 
 ```python
 # Python
 import ballistic
 
-version = ballistic.__version__  # "0.1.1"
+version = ballistic.__version__  # "0.1.2"
 major = ballistic.VERSION_MAJOR
 minor = ballistic.VERSION_MINOR
 patch = ballistic.VERSION_PATCH

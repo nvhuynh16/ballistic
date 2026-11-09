@@ -6,10 +6,30 @@ uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.1.2]
+
+First release published on PyPI (`pip install ballistic-orbit`).
+
+### Fixed
+
+- `Loader`'s file-age check subtracted naive local times, an hour off across
+  a daylight-saving change, and on Windows read a file written just now as
+  slightly negative in age (its modification time comes from a different
+  clock). It now compares POSIX timestamps; a file stamped slightly in the
+  future is age 0.
+
+### Build
+
+- The TestPyPI install test in `wheels.yml` now sets up what a user would:
+  the NRL plugin from the GitHub release (`install_nrl_models`) and the
+  committed EOP and space-weather files for `ballistic doctor`. A repeat
+  TestPyPI upload of the same version skips files already there.
+
 ## [0.1.1]
 
-First release published on PyPI (`pip install ballistic-orbit`). Version
-0.1.0 was never distributed.
+Published as a GitHub release (with the NRL plugins) and on TestPyPI, not on
+PyPI: its install test on Windows found the file-age bug fixed in 0.1.2.
+Version 0.1.0 was never distributed.
 
 ### Changed (BREAKING)
 
