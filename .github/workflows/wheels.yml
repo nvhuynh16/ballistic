@@ -190,16 +190,22 @@ jobs:
           path: dist
           merge-multiple: true
 
+      # skip-existing: a version already on TestPyPI is kept, so the install
+      # tests below can be run again (after fixing this workflow) against the
+      # files first uploaded. PyPI below has no such option: a repeat upload
+      # there fails.
       - uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: dist
           repository-url: https://test.pypi.org/legacy/
+          skip-existing: true
 
   # Install from TestPyPI into a clean Python, as a user would (numpy from
-  # PyPI), and run the Python test suite from the checkout against that
-  # installation: no PYTHONPATH, so `import ballistic` is the installed
-  # package. Tests that need data a clean checkout lacks, or the NRL plugin,
-  # skip with their reason.
+  # PyPI), install the NRL plugin from this version's GitHub release with
+  # install_nrl_models (so the release must be published first), and run the
+  # Python test suite from the checkout against that installation: no
+  # PYTHONPATH, so `import ballistic` is the installed package. Tests that
+  # need data a clean checkout lacks skip with their reason.
   test_testpypi:
     needs: publish_testpypi
     name: TestPyPI install ${{ matrix.os }}
@@ -234,14 +240,34 @@ jobs:
           python -m pip install pytest sgp4
           cd "$RUNNER_TEMP" && python -c "import ballistic, sys; print(ballistic.__version__, ballistic.__file__); sys.exit(ballistic.__version__ != '${version}')"
 
+      # The data directory starts empty, as after a fresh install: the
+      # plugin is downloaded into it, and doctor reads the committed EOP and
+      # space-weather files from it offline (on an empty directory doctor
+      # correctly reports "not ready" and exits 1).
+      - name: NRL plugin from the release, and doctor
+        shell: bash
+        env:
+          PYTHONUTF8: "1"
+          BALLISTIC_DATA_DIR: ${{ runner.temp }}/ballistic-data
+        run: |
+          cd "$RUNNER_TEMP"
+          python -c "import ballistic, sys; ballistic.install_nrl_models(accept_license=True); s = ballistic.nrl_models(); print(s); sys.exit(not s.installed)"
+          cd "$GITHUB_WORKSPACE"
+          python -c "import os, shutil; [shutil.copy(f, os.environ['BALLISTIC_DATA_DIR']) for f in ('tests/data/eop/finals2000A.all', 'tests/data/weather/SW-All.csv')]"
+          BALLISTIC_OFFLINE=1 python -m ballistic doctor
+
+      # conftest.py points BALLISTIC_DATA_DIR at its own hermetic directory,
+      # so the plugin is named by BALLISTIC_NRL_MODELS.
       - name: pytest against the installed package
         shell: bash
+        timeout-minutes: 30
         env:
           PYTHONUTF8: "1"
           BALLISTIC_STRICT_WARNINGS: "1"
         run: |
-          python -m ballistic doctor
-          timeout 1800 python -m pytest tests/python -q -rs
+          export BALLISTIC_NRL_MODELS="$(BALLISTIC_DATA_DIR='${{ runner.temp }}/ballistic-data' python -c "import ballistic; print(ballistic.nrl_models().path)")"
+          echo "plugin: $BALLISTIC_NRL_MODELS"
+          python -m pytest tests/python -q -rs
 
   publish:
     needs: build_wheels
