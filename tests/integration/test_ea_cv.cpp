@@ -16,6 +16,7 @@
 // (cv_bspline_position / _velocity / _acceleration).
 
 
+#include "../portable_random.hpp"
 #include "../test_utils.hpp"
 #include <ballistic/init.hpp>
 #include <ballistic/coordinates/geodetic.hpp>
@@ -204,14 +205,17 @@ int main() {
                                     : "edge: " + hints.front()) << "\n";
 
         // Measured: 0.141 m in ~8 s, choosing knot spacing 10 s and
-        // lambda_min 1e-12, both grid edges. On clean data the held-out
-        // scores of many candidates agree within the 1 mm tie tolerance, and a
-        // tie goes to the larger knot spacing (pick_best_grid_idx), so the
-        // smoothest spline that fits wins. The edge report must say so.
+        // lambda_min 1e-12, both grid edges (GCC); MSVC chose another
+        // lambda_min-edge candidate, 0.004 m. On clean data the held-out
+        // scores of many candidates agree within the 1 mm tie tolerance, so
+        // which one wins depends on rounding; ties go to the larger knot
+        // spacing (pick_best_grid_idx). Whichever edge it is, the report must
+        // name it.
         TEST_ASSERT_MSG(hints.size() == 1, "expected one grid-edge report, got " +
                                                std::to_string(hints.size()));
-        TEST_ASSERT_MSG(hints.front().find("knot spacing 10 s (the largest") !=
-                            std::string::npos, hints.front());
+        TEST_ASSERT_MSG(hints.front().find("knot spacing 10 s (the largest") != std::string::npos ||
+                            hints.front().find("lambda_min 1e-12 (the smallest") != std::string::npos,
+                        hints.front());
         // Bound: about 1.8x the measured 0.141 m.
         TEST_ASSERT_MSG(rmse < 0.25,
             "CV position RMSE too large: " + std::to_string(rmse) + " m");
@@ -348,7 +352,7 @@ int main() {
     runner.add_test("cv_velocity_coarse_end_to_end", [&]() {
         auto clean = generate_vel_obs(t0, pos, vel, 1.0, arc);
         std::mt19937 rng(7);
-        std::normal_distribution<double> noise(0.0, 0.05);
+        ballistic::test::Normal noise(0.0, 0.05);
         std::vector<std::pair<Epoch, Vector3d>> vel_data;
         for (const auto& [ep, v] : clean)
             vel_data.emplace_back(ep, v + Vector3d(noise(rng), noise(rng), noise(rng)));
@@ -449,7 +453,7 @@ int main() {
     runner.add_test("cv_velocity_end_to_end", [&]() {
         auto clean = generate_vel_obs(t0, pos, vel, 1.0, arc);
         std::mt19937 rng(7);
-        std::normal_distribution<double> noise(0.0, 0.05);
+        ballistic::test::Normal noise(0.0, 0.05);
         std::vector<std::pair<Epoch, Vector3d>> vel_data;
         for (const auto& [ep, v] : clean)
             vel_data.emplace_back(ep, v + Vector3d(noise(rng), noise(rng), noise(rng)));

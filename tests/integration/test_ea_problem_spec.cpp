@@ -16,6 +16,7 @@
 // tests/test_helpers.hpp) and synthetic radar / camera / accelerometer samples.
 // =============================================================================
 
+#include "../portable_random.hpp"
 #include "../test_helpers.hpp"
 #include "../test_utils.hpp"
 
@@ -72,7 +73,7 @@ int main() {
         auto truth_ea = glide.truth_traj->force_model().empirical_acceleration();
         AccelSamples acc;
         std::mt19937 rng(7);
-        std::normal_distribution<double> n(0.0, 0.01);
+        ballistic::test::Normal n(0.0, 0.01);
         for (double t = 0.0; t <= 60.0; t += 0.1) {
             auto st = glide.truth_interp->get_state(glide.t0 + t);
             if (!st) continue;
@@ -116,7 +117,7 @@ int main() {
         auto st = glide.truth_interp->get_state(glide.t0 + glide.eval_end - 0.5001);
         TEST_ASSERT(st.has_value());
         std::mt19937 rng(44);
-        std::normal_distribution<double> nn(0.0, fix.sigma_pos);
+        ballistic::test::Normal nn(0.0, fix.sigma_pos);
         Vector3d obs_pos = st->position + Vector3d(nn(rng), nn(rng), nn(rng));
         fix.samples.emplace_back(glide.t0 + glide.eval_end - 0.5001, obs_pos);
 
@@ -223,8 +224,8 @@ int main() {
         // the audit reports
         // how many samples were rejected.
         std::mt19937 rng(18);
-        std::normal_distribution<double> n(0.0, 0.01);
-        std::uniform_real_distribution<double> u01(0.0, 1.0);
+        ballistic::test::Normal n(0.0, 0.01);
+        ballistic::test::UniformReal u01(0.0, 1.0);
         AccelSamples acc;
         acc.ecef = glide.acc_100;
         for (auto& [t, v] : acc.ecef) {

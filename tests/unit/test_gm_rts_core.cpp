@@ -25,6 +25,7 @@
 // trajectory.
 // =============================================================================
 
+#include "../portable_random.hpp"
 #include "../test_utils.hpp"
 
 #include <ballistic/calibration/detail/gm_rts.hpp>
@@ -59,7 +60,7 @@ struct LinearProblem {
         H << 1, 0;
         P0 = Eigen::Matrix2d::Identity() * 1e-2;
         std::mt19937 rng(7);
-        std::normal_distribution<double> n(0.0, sigma);
+        ballistic::test::Normal n(0.0, sigma);
         Eigen::Vector2d x = z0;
         for (int k = 0; k < N; ++k) {
             x = Phi * x;                       // noiseless truth for data-gen

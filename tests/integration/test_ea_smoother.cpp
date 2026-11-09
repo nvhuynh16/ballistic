@@ -25,6 +25,7 @@
 // regression.
 // =============================================================================
 
+#include "../portable_random.hpp"
 #include "../test_helpers.hpp"
 #include "../test_utils.hpp"
 
@@ -65,7 +66,7 @@ int main() {
         fix.sigma_pos = 3.0;
         auto st = glide.truth_interp->get_state(glide.t0 + glide.eval_end - 0.5);
         std::mt19937 rng(44);
-        std::normal_distribution<double> n(0.0, fix.sigma_pos);
+        ballistic::test::Normal n(0.0, fix.sigma_pos);
         if (st)
             fix.samples.emplace_back(
                 glide.t0 + glide.eval_end - 0.5,
@@ -240,7 +241,7 @@ int main() {
         const Vector3d true_bias(1.0e-4, -2.0e-4, 5.0e-5);
         auto truth_ea = glide.truth_traj->force_model().empirical_acceleration();
         std::mt19937 rng2(45);
-        std::normal_distribution<double> na(0.0, acc.sigma_accel);
+        ballistic::test::Normal na(0.0, acc.sigma_accel);
         for (double t = 0.0; t <= glide.eval_end; t += 1.0 / 160.0) {
             Matrix3d R_g2e = coords::detail::get_cached_transform()
                                  .gcrs_to_itrf_matrix(glide.t0 + t);
@@ -328,7 +329,7 @@ int main() {
             auto truth_ea =
                 glide.truth_traj->force_model().empirical_acceleration();
             std::mt19937 rng2(45);
-            std::normal_distribution<double> na(0.0, acc.sigma_accel);
+            ballistic::test::Normal na(0.0, acc.sigma_accel);
             for (double t = 0.0; t <= glide.eval_end; t += 1.0 / 160.0) {
                 Matrix3d R_g2e = coords::detail::get_cached_transform()
                                      .gcrs_to_itrf_matrix(glide.t0 + t);
@@ -501,8 +502,8 @@ int main() {
         acc.sigma_accel = 0.01;
         acc.sigma_bias_prior = 1e-3;
         std::mt19937 rng(18);
-        std::normal_distribution<double> na(0.0, acc.sigma_accel);
-        std::uniform_real_distribution<double> u01(0.0, 1.0);
+        ballistic::test::Normal na(0.0, acc.sigma_accel);
+        ballistic::test::UniformReal u01(0.0, 1.0);
         for (double t = 0.0; t <= glide.eval_end; t += 1.0 / 160.0) {
             Matrix3d R_g2e = coords::detail::get_cached_transform()
                                  .gcrs_to_itrf_matrix(glide.t0 + t);

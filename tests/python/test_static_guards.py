@@ -199,6 +199,19 @@ RULES = [
         code_only=True,
     ),
     Rule(
+        id="STD-DISTRIBUTION",
+        why=("std::normal_distribution and the other standard distributions give different "
+             "numbers with each standard library (libstdc++, libc++, MSVC), so a test's "
+             "noise, and the bound measured on it, differed between Linux, macOS and "
+             "Windows. Use tests/portable_random.hpp (Normal, UniformReal), which draws "
+             "libstdc++'s numbers everywhere."),
+        pattern=r"std::(normal|uniform_real|uniform_int|bernoulli|exponential|poisson|lognormal|chi_squared|student_t|discrete)_distribution\b",
+        roots=("tests/**/*.cpp", "tests/**/*.hpp"),
+        allow=("tests/unit/test_portable_random.cpp",   # checks the portable ones against them
+               "tests/diagnostics/**"),                  # research tools, not run by CI's tests
+        code_only=True,
+    ),
+    Rule(
         id="SPHERICAL-ALT",
         why=("Altitude is geodetic (above the WGS84 ellipsoid): |r| - R is wrong by up to "
              "21 km at 45 deg latitude, and coords::ecef_to_altitude itself was r - N(geocentric "
@@ -480,6 +493,8 @@ PROBES = {
                          "def parse_sp3(filepath, target_ids=None):"),
     "LAGRANGE-RAW": ("include/ballistic/validation/example.hpp",
                      "return math::detail::lagrange_interpolate_vector(get_t, get_x, n, t, 9);"),
+    "STD-DISTRIBUTION": ("tests/unit/test_example.cpp",
+                         "    std::normal_distribution<double> noise(0.0, 0.05);"),
     "SPHERICAL-ALT": ("scripts/validate_example.py",
                       "alt_km = (np.linalg.norm(pos) / 1000.0) - 6371.0"),
     "SKIP-AS-PASS": ("tests/validation/test_example.cpp",

@@ -12,6 +12,7 @@
 // Frames: ECEF / ITRF = Earth-fixed; GCRS = the inertial (non-rotating)
 // frame the propagator integrates in.
 
+#include "portable_random.hpp"
 #include <ballistic/ballistic.hpp>
 #include <ballistic/calibration/multisensor.hpp>
 #include <ballistic/calibration/detail/run_propagation.hpp>
@@ -244,7 +245,7 @@ inline std::vector<std::pair<Epoch, Vector3d>> add_noise(
     double sigma, unsigned seed)
 {
     std::mt19937 rng(seed);
-    std::normal_distribution<double> n(0.0, sigma);
+    ballistic::test::Normal n(0.0, sigma);
     std::vector<std::pair<Epoch, Vector3d>> out;
     out.reserve(clean.size());
     for (auto& p : clean)
@@ -468,9 +469,9 @@ generate_radar_samples(
     out.reserve(static_cast<size_t>(std::ceil(duration_s / dt)) + 1);
 
     std::mt19937 rng(seed);
-    std::normal_distribution<double> n_range(0.0, radar_spec.sigma_range);
-    std::normal_distribution<double> n_angle(0.0, radar_spec.sigma_angle);
-    std::normal_distribution<double> n_rate(0.0, radar_spec.sigma_rate);
+    ballistic::test::Normal n_range(0.0, radar_spec.sigma_range);
+    ballistic::test::Normal n_angle(0.0, radar_spec.sigma_angle);
+    ballistic::test::Normal n_rate(0.0, radar_spec.sigma_rate);
 
     for (double t = 0.0; t <= duration_s + 1e-9; t += dt) {
         auto state = truth_ecef.get_state(epoch0 + t);
@@ -581,7 +582,7 @@ generate_optics_samples(
     const double dt = 1.0 / sample_rate_hz;
     out.reserve(static_cast<size_t>(std::ceil(duration_s / dt)) + 1);
     std::mt19937 rng(seed);
-    std::normal_distribution<double> n_angle(0.0, cam_spec.sigma_angle);
+    ballistic::test::Normal n_angle(0.0, cam_spec.sigma_angle);
     for (double t = 0.0; t <= duration_s + 1e-9; t += dt) {
         auto state = truth_ecef.get_state(epoch0 + t);
         if (!state) continue;

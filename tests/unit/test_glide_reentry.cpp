@@ -194,7 +194,11 @@ int main() {
     // Step 1: Propagate ballistic trajectory → get impact position
     // =========================================================================
     Trajectory ball_traj(t0, pos, vel, make_ballistic_config());
-    auto [ball_duration, ball_ok] = propagate_to_ground(ball_traj, t0, 600.0);
+    // Plain variables, not structured bindings: the test lambdas capture them,
+    // and clang 18 rejects capturing a structured binding when OpenMP is on.
+    const auto ball_result = propagate_to_ground(ball_traj, t0, 600.0);
+    double ball_duration = ball_result.first;
+    const bool ball_ok = ball_result.second;
     TrajectoryInterpolator ball_interp(ball_traj);
     if (ball_ok) ball_duration = bisect_impact(ball_interp, t0, ball_duration);
     auto ball_impact = ball_interp.get_state(t0 + ball_duration);
@@ -235,7 +239,9 @@ int main() {
     // Step 4: Propagate full forced trajectory (glide + return)
     // =========================================================================
     Trajectory forced_traj(t0, pos, vel, make_forced_config(return_dir));
-    auto [forced_duration, forced_ok] = propagate_to_ground(forced_traj, t0, 700.0);
+    const auto forced_result = propagate_to_ground(forced_traj, t0, 700.0);
+    double forced_duration = forced_result.first;
+    const bool forced_ok = forced_result.second;
     TrajectoryInterpolator forced_interp(forced_traj);
     if (forced_ok) forced_duration = bisect_impact(forced_interp, t0, forced_duration);
     auto forced_impact = forced_interp.get_state(t0 + forced_duration);

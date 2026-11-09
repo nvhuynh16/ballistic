@@ -368,11 +368,13 @@ void test_eof_failed_extraction_leaves_no_nul_file() {
     const fs::path original_cwd = fs::current_path();
     fs::current_path(scratch);
     const auto result = extract_eof_zip((scratch / "does_not_exist.zip").string());
-    const bool nul_exists = fs::exists(scratch / "nul");
+    // The working directory must still be empty. (Not fs::exists(scratch /
+    // "nul"): on Windows "nul" is the device and that call throws.)
+    const bool untouched = fs::is_empty(scratch);
     fs::current_path(original_cwd);
     fs::remove_all(scratch);
     TEST_ASSERT_MSG(!result.has_value(), "a nonexistent zip cannot be extracted");
-    TEST_ASSERT_MSG(!nul_exists, "extraction left a file named 'nul' in the working directory");
+    TEST_ASSERT_MSG(untouched, "extraction left a file (e.g. 'nul') in the working directory");
 }
 
 // =============================================================================

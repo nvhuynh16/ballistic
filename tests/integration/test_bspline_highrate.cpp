@@ -343,7 +343,11 @@ int main() {
     };
 
     // Forward tests
-    for (auto [hz, dt] : std::vector<std::pair<int,double>>{{10,0.1},{100,0.01},{300,1./300},{500,0.002},{1000,0.001}}) {
+    for (const auto& rate : std::vector<std::pair<int,double>>{{10,0.1},{100,0.01},{300,1./300},{500,0.002},{1000,0.001}}) {
+        // Named copies: lambdas capture dt, and clang 18 cannot capture a
+        // structured binding when OpenMP is on.
+        const int hz = rate.first;
+        const double dt = rate.second;
         std::string tag = std::to_string(hz) + "hz";
         runner.add_test("fwd_pos_" + tag, [&, dt, tag]() { run_fwd_pos("fwd_pos_" + tag, dt); });
         runner.add_test("fwd_vel_" + tag, [&, dt, tag]() { run_fwd_vel("fwd_vel_" + tag, dt); });
@@ -351,7 +355,11 @@ int main() {
     }
 
     // Backward tests
-    for (auto [hz, dt] : std::vector<std::pair<int,double>>{{300,1./300},{500,0.002},{1000,0.001}}) {
+    for (const auto& rate : std::vector<std::pair<int,double>>{{300,1./300},{500,0.002},{1000,0.001}}) {
+        // Named copies: lambdas capture dt, and clang 18 cannot capture a
+        // structured binding when OpenMP is on.
+        const int hz = rate.first;
+        const double dt = rate.second;
         std::string tag = std::to_string(hz) + "hz";
         runner.add_test("bwd_pos_" + tag, [&, dt, tag]() { run_bwd_pos("bwd_pos_" + tag, dt); });
         runner.add_test("bwd_vel_" + tag, [&, dt, tag]() { run_bwd_vel("bwd_vel_" + tag, dt); });
@@ -359,7 +367,11 @@ int main() {
     }
 
     // All rates again with regularization weight λ = 1e-8 (a candidate default).
-    for (auto [hz, dt] : std::vector<std::pair<int,double>>{{10,0.1},{100,0.01},{300,1./300},{500,0.002},{1000,0.001}}) {
+    for (const auto& rate : std::vector<std::pair<int,double>>{{10,0.1},{100,0.01},{300,1./300},{500,0.002},{1000,0.001}}) {
+        // Named copies: lambdas capture dt, and clang 18 cannot capture a
+        // structured binding when OpenMP is on.
+        const int hz = rate.first;
+        const double dt = rate.second;
         std::string tag = std::to_string(hz) + "hz";
         runner.add_test("fwd_pos_lam8_" + tag, [&, dt, tag]() {
             auto& s = get_setup();

@@ -17,6 +17,7 @@
 //   (4) the default config equals an explicit Gauss-Newton (GN) refinement bit
 //       for bit, and GN is ignored for ACC.
 
+#include "../portable_random.hpp"
 #include "../test_utils.hpp"
 #include "../test_helpers.hpp"
 
@@ -163,9 +164,9 @@ static Setup& get_setup() {
 
     // Noisy observations at 100 Hz
     std::mt19937 rng(42);
-    std::normal_distribution<double> pos_noise(0.0, 1.0);
-    std::normal_distribution<double> vel_noise(0.0, 0.25);
-    std::normal_distribution<double> acc_noise(0.0, 0.1);
+    ballistic::test::Normal pos_noise(0.0, 1.0);
+    ballistic::test::Normal vel_noise(0.0, 0.25);
+    ballistic::test::Normal acc_noise(0.0, 0.1);
 
     s.pos_noisy.reserve(s.pos_100hz.size());
     s.vel_noisy.reserve(s.vel_100hz.size());

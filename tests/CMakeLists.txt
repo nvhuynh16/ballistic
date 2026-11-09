@@ -96,6 +96,7 @@ endfunction()
 ballistic_add_test(test_constants unit/test_constants.cpp)
 ballistic_add_test(test_defaults unit/test_defaults.cpp)
 ballistic_add_test(test_build_info unit/test_build_info.cpp)
+ballistic_add_test(test_portable_random unit/test_portable_random.cpp)
 ballistic_add_test(test_nrl_models unit/test_nrl_models.cpp nrl)
 if(TARGET test_nrl_models)   # it loads the built plugin itself, by path
     target_compile_definitions(test_nrl_models PRIVATE
