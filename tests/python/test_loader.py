@@ -177,6 +177,21 @@ class TestLoaderFileAge:
         assert isinstance(age, float)
         assert age >= 0
 
+    def test_age_from_timestamps(self, tmp_path):
+        """A known modification time gives its age; one slightly in the future
+        (Windows stamps files from a different clock than time.time()) is 0."""
+        import os
+        import time
+        loader = Loader(directory=str(tmp_path), verbose=False)
+        path = tmp_path / "test.txt"
+        path.write_text("test", encoding="utf-8")
+        two_days_ago = time.time() - 2 * 86400
+        os.utime(path, (two_days_ago, two_days_ago))
+        assert loader._file_age_days(path) == pytest.approx(2.0, abs=1e-3)
+        ahead = time.time() + 1e-3
+        os.utime(path, (ahead, ahead))
+        assert loader._file_age_days(path) == 0.0
+
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

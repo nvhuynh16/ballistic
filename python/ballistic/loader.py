@@ -42,6 +42,7 @@ from pathlib import Path
 from datetime import datetime, timezone
 from typing import Optional
 import ssl
+import time
 
 # Import the C++ bindings
 from . import _core
@@ -231,9 +232,12 @@ class Loader:
         """The file's age from its modification time, in days; None if it does not exist."""
         if not path.exists():
             return None
-        mtime = datetime.fromtimestamp(path.stat().st_mtime)
-        age = datetime.now() - mtime
-        return age.total_seconds() / 86400
+        # POSIX timestamps, not naive local datetimes (those differ by an hour
+        # across a daylight-saving change). A file written just now can carry
+        # a modification time a few microseconds after time.time(), because
+        # Windows stamps files from a different clock: that is age 0.
+        age_s = time.time() - path.stat().st_mtime
+        return max(age_s, 0.0) / 86400
 
     def _needs_update(self, path: Path, file_type: str) -> bool:
         """True if the file is missing, older than its interval, or its
