@@ -62,7 +62,7 @@ bool contains(const std::string& s, const char* what) { return s.find(what) != s
 
 int main() {
     // The plugin the tests were built with; then make sure nothing points at it
-    // yet (nrl_plugin_env.cpp set BALLISTIC_NRL_MODELS during static init).
+    // yet (test_env.cpp set BALLISTIC_NRL_MODELS during static init).
     const std::string built_plugin = BALLISTIC_TEST_NRL_PLUGIN;
     unset_env("BALLISTIC_NRL_MODELS");
     helpers::IsolatedDataDir isolated;   // no plugin in the data directory either

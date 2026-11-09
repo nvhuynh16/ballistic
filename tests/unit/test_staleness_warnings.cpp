@@ -99,7 +99,7 @@ int main() {
         // Trap INIT-SKIP-BAD-FILE (docs/trap_census.md): a corrupt finals2000A in
         // the data directory must produce a warning, not be skipped silently.
         helpers::IsolatedDataDir isolated;
-        const fs::path data = fs::path(std::getenv(helpers::data_root_env_var())) / "ballistic";
+        const fs::path data = fs::path(std::getenv(helpers::data_dir_env_var()));
         fs::create_directories(data);
         std::ofstream(data / "finals2000A.data") << "<html>rate limited</html>\n";
         time::EOPData::instance().clear();

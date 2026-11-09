@@ -182,6 +182,8 @@ class Loader:
             - Windows: %LOCALAPPDATA%\\ballistic
             - Linux: ~/.local/share/ballistic
             - macOS: ~/Library/Application Support/ballistic
+            The environment variable BALLISTIC_DATA_DIR, when set, names the
+            directory instead (every platform).
         verbose: If True, print download progress messages.
         expire_days: re-download files older than this many days, for every
             file type. None (default) uses each type's own interval (EOP 7,

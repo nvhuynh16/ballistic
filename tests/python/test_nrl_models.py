@@ -32,7 +32,7 @@ def _run(tmp_path, code, **extra_env):
     app = data / "ballistic"
     app.mkdir(parents=True, exist_ok=True)
     (app / "finals2000A.all").write_bytes((REPO / "tests/data/eop/finals2000A.all").read_bytes())
-    env = dict(os.environ, XDG_DATA_HOME=str(data), LOCALAPPDATA=str(data), **extra_env)
+    env = dict(os.environ, BALLISTIC_DATA_DIR=str(app), **extra_env)
     env.pop("BALLISTIC_NRL_MODELS", None)
     env.pop("BALLISTIC_STRICT_WARNINGS", None)
     if env.get("PYTHONPATH"):

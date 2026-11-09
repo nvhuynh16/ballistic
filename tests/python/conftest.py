@@ -3,8 +3,8 @@ Shared pytest fixtures for Ballistic Python tests.
 
 Provides session-scoped initialization and common test state (LEO orbit).
 
-The whole suite runs against a hermetic data directory: XDG_DATA_HOME
-(LOCALAPPDATA on Windows) is pointed at a session temp dir seeded with the
+The whole suite runs against a hermetic data directory: BALLISTIC_DATA_DIR
+(every platform) is pointed at a session temp dir seeded with the
 checked-in, frozen tests/data/eop/finals2000A.all and nothing else. EOP loads
 deterministically via auto-discovery; leap seconds stay embedded regardless of
 what the user's real ~/.local/share/ballistic contains (Loader().timescale()
@@ -59,8 +59,7 @@ def initialize_ballistic(tmp_path_factory):
     app_dir = data_home / "ballistic"
     app_dir.mkdir()
     shutil.copy(_PINNED_EOP, app_dir / "finals2000A.all")
-    var = "LOCALAPPDATA" if sys.platform == "win32" else "XDG_DATA_HOME"
-    os.environ[var] = str(data_home)
+    os.environ["BALLISTIC_DATA_DIR"] = str(app_dir)
     result = ballistic.initialize()
     assert result.eop_loaded and result.eop_auto_discovered, (
         "hermetic fixture failed to pin EOP: " + str(result)

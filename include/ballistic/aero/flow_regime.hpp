@@ -138,17 +138,36 @@ enum class Shape {
 }
 
 // exp(-x) I_nu(x), the scaled modified Bessel function of the first kind,
-// nu = 0 or 1, without overflow for large x: direct below
-// x = 700 (I_nu overflows a double near 713), else the asymptotic series
-// e^-x I_nu(x) ~ (2 pi x)^-1/2 sum_k (-1)^k a_k / x^k, a_k = prod_{j<=k} (4nu^2 - (2j-1)^2) / (k! 8^k)
-// (Abramowitz & Stegun 9.7.1; eight terms are exact to double precision there).
+// nu = 0 or 1, x >= 0, without overflow for large x (I_nu overflows a double
+// near x = 713). Written out because libc++ has no std::cyl_bessel_i.
+//   x <= 50: the power series I_nu(x) = sum_k (x/2)^(2k+nu) / (k! (k+nu)!),
+//            all terms positive (no cancellation), scaled by exp(-x);
+//   x > 50:  the asymptotic series
+//            e^-x I_nu(x) ~ (2 pi x)^-1/2 sum_k (-1)^k a_k / x^k,
+//            a_k = prod_{j<=k} (4nu^2 - (2j-1)^2) / (k! 8^k)
+//            (Abramowitz & Stegun 9.7.1), summed until a term no longer
+//            changes the sum; its smallest term at x = 50 is ~1e-43.
+// Agrees with std::cyl_bessel_i to ~1e-14 relative (test_flow_regime_cd).
 [[nodiscard]] inline double scaled_bessel_i(int nu, double x) {
-    if (x < 700.0) return std::exp(-x) * std::cyl_bessel_i(static_cast<double>(nu), x);
+    if (x <= 50.0) {
+        const double q = 0.25 * x * x;
+        double term = (nu == 0) ? 1.0 : 0.5 * x;
+        double sum = term;
+        for (int k = 1; k < 500; ++k) {
+            term *= q / (static_cast<double>(k) * (k + nu));
+            sum += term;
+            if (term < 1e-17 * sum) break;
+        }
+        return std::exp(-x) * sum;
+    }
     const double mu = 4.0 * nu * nu;
     double term = 1.0, sum = 1.0;
-    for (int k = 1; k <= 8; ++k) {
-        term *= -(mu - (2.0 * k - 1.0) * (2.0 * k - 1.0)) / (k * 8.0 * x);
+    for (int k = 1; k <= 60; ++k) {
+        const double next = term * -(mu - (2.0 * k - 1.0) * (2.0 * k - 1.0)) / (k * 8.0 * x);
+        if (std::abs(next) >= std::abs(term)) break;   // the series starts to diverge
+        term = next;
         sum += term;
+        if (std::abs(term) < 1e-17 * std::abs(sum)) break;
     }
     return sum / std::sqrt(2.0 * std::numbers::pi * x);
 }

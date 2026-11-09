@@ -47,13 +47,20 @@ target_compile_definitions(ballistic_test_gzip INTERFACE BALLISTIC_HAVE_ZLIB)
 # the model headers directly); tests that only have a few such cells compile
 # them out with #ifndef BALLISTIC_TEST_NO_NRL_PLUGIN instead.
 # Default gate: ctest -LE heavy. Without the plugin: ctest -LE 'heavy|nrl'.
-# Every test and diagnostic is pointed at the plugin built here
-# (nrl_plugin_env.cpp sets BALLISTIC_NRL_MODELS unless it is already set).
-function(ballistic_nrl_test_setup target)
+# Every test and diagnostic links tests/test_env.cpp, which points
+# BALLISTIC_DATA_DIR at tests/data/eop/ and BALLISTIC_NRL_MODELS at the plugin
+# built here (each unless already set), so results do not depend on the
+# user's data directory.
+# (Source properties are per directory, so they are set by each caller.)
+function(ballistic_test_env_setup target)
+    set(env_source ${PROJECT_SOURCE_DIR}/tests/test_env.cpp)
+    set(defs "BALLISTIC_TEST_DATA_DIR=\"${PROJECT_SOURCE_DIR}/tests/data/eop\"")
     if(TARGET ballistic_nrl)
-        target_sources(${target} PRIVATE ${PROJECT_SOURCE_DIR}/tests/nrl_plugin_env.cpp)
-        set_source_files_properties(${PROJECT_SOURCE_DIR}/tests/nrl_plugin_env.cpp PROPERTIES
-            COMPILE_DEFINITIONS "BALLISTIC_TEST_NRL_PLUGIN=\"$<TARGET_FILE:ballistic_nrl>\"")
+        list(APPEND defs "BALLISTIC_TEST_NRL_PLUGIN=\"$<TARGET_FILE:ballistic_nrl>\"")
+    endif()
+    set_source_files_properties(${env_source} PROPERTIES COMPILE_DEFINITIONS "${defs}")
+    target_sources(${target} PRIVATE ${env_source})
+    if(TARGET ballistic_nrl)
         add_dependencies(${target} ballistic_nrl)
     else()
         target_compile_definitions(${target} PRIVATE BALLISTIC_TEST_NO_NRL_PLUGIN)
@@ -66,7 +73,7 @@ function(ballistic_add_test test_name source_file)
     endif()
     add_executable(${test_name} ${source_file})
     target_link_libraries(${test_name} PRIVATE ballistic ballistic_test_gzip)
-    ballistic_nrl_test_setup(${test_name})
+    ballistic_test_env_setup(${test_name})
     add_test(NAME ${test_name} COMMAND ${test_name})
     if(source_file MATCHES "^unit/")
         set(_labels unit)

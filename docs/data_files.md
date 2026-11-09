@@ -48,7 +48,10 @@ ballistic.data_files()
 loads the cached files, reports how far each one reaches, what is missing
 whether the NRL drag models are installed, and runs a short self-test.
 
-It looks in the default data directory (`ballistic.get_data_directory()`),
+It looks in the default data directory (`ballistic.get_data_directory()`:
+`~/.local/share/ballistic` on Linux, `%LOCALAPPDATA%\ballistic` on Windows,
+`~/Library/Application Support/ballistic` on macOS, or the directory the
+environment variable `BALLISTIC_DATA_DIR` names, on every platform),
 or in a folder you name: `ballistic.data_files("/path/to/kit")`.
 `ballistic.Loader().status()` also reports each file's age.
 

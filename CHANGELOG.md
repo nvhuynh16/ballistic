@@ -6,6 +6,11 @@ uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.1.1]
+
+First release published on PyPI (`pip install ballistic-orbit`). Version
+0.1.0 was never distributed.
+
 ### Changed (BREAKING)
 
 - The Python distribution is renamed `ballistic` → `ballistic-orbit`
@@ -91,15 +96,16 @@ uses [Semantic Versioning](https://semver.org/).
 - The PyPI distribution name is `ballistic-orbit` (the import name stays
   `ballistic`); it was unregistered when chosen, but PyPI confirms a name only
   when the first upload succeeds.
-- Add the GitHub remote (`https://github.com/nvhuynh16/ballistic`).
-- Register trusted publishing on PyPI for the project `ballistic-orbit`
-  (owner `nvhuynh16`, repository `ballistic`, workflow `wheels.yml`, environment `pypi`) and
-  create the `pypi` environment in the GitHub repository settings; the
-  publish job in `wheels.yml` cannot upload without both.
-- Push the first version tag (`v*`) and check the `Wheels` run: four wheels
+- Trusted publishing is registered for `ballistic-orbit` on TestPyPI
+  (environment `testpypi`) and PyPI (environment `pypi`): owner
+  `nvhuynh16`, repository `ballistic`, workflow `wheels.yml`. Each index
+  needs its own registration and the GitHub environment of that name.
+- Push the version tag (`v*`) and check the `Wheels` run: four wheels
   (manylinux_2_28 x86_64, Windows AMD64, macOS arm64 and x86_64), each having
-  passed the doctor and quick-start tests; then publish from a manual run
-  with `publish` ticked.
+  passed the doctor and quick-start tests, and the NRL plugins. Then run the
+  workflow on the tag with target `testpypi` (uploads, installs from TestPyPI
+  on the four platforms and runs the Python tests there), and, once that is
+  green, with target `pypi`. An index never accepts the same version twice.
 - Wheels are built for CPython 3.12 only (`build = "cp312-*"`); add later
   versions to `[tool.cibuildwheel]` once they are tested.
 - No sdist is published: `python/pyproject.toml` builds the CMake project in

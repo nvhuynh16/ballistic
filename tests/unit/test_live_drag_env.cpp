@@ -221,10 +221,10 @@ int main() {
         atm::DragSetup s{.beta = atm::BetaProfile1D::constant(120.0)};
         s.weather = atm::SpaceWeatherHistory::from_constant(WeatherConditions::quiet());
         // Past the loaded weather file (ends 2024-01-18), inside the EOP table.  guard-exempt(PUB-DATE): data
-        const Epoch far = Epoch::from_utc(2025, 6, 1, 0, 0, 0);
-        auto env = atm::make_drag_environment(far, kPos, kVel, 0.0, fast_config(), s);
-        Trajectory tr(far, kPos, kVel, with_env(env));
-        (void)tr.propagate(far + 6 * 3600.0);
+        const Epoch late = Epoch::from_utc(2025, 6, 1, 0, 0, 0);
+        auto env = atm::make_drag_environment(late, kPos, kVel, 0.0, fast_config(), s);
+        Trajectory tr(late, kPos, kVel, with_env(env));
+        (void)tr.propagate(late + 6 * 3600.0);
         TEST_ASSERT_TRUE(tr.warnings().empty());
     });
 

@@ -49,26 +49,19 @@ inline long long current_pid() {
 #endif
 }
 
-// The environment variable that names the platform data root (the library
-// looks for <root>/ballistic): LOCALAPPDATA on Windows, XDG_DATA_HOME
-// elsewhere.
-inline constexpr const char* data_root_env_var() {
-#if defined(_WIN32)
-    return "LOCALAPPDATA";
-#else
-    return "XDG_DATA_HOME";
-#endif
-}
+// The environment variable that names the library's data directory on every
+// platform (core/data_paths.hpp); it takes precedence over the platform default.
+inline constexpr const char* data_dir_env_var() { return "BALLISTIC_DATA_DIR"; }
 
-// RAII helper: point XDG_DATA_HOME (Linux) / LOCALAPPDATA (Windows) at an
-// empty temp directory for the duration of the scope, so initialize({})
-// can't auto-discover finals2000A.data / leap-seconds.list / SW-All.csv
-// from the user's real data directory. Use it in every test whose results
-// must not depend on cached user data.
+// RAII helper: point BALLISTIC_DATA_DIR at an empty temp directory for the
+// duration of the scope, so initialize({}) can't auto-discover
+// finals2000A.data / leap-seconds.list / SW-All.csv from the user's real
+// data directory. Use it in every test whose results must not depend on
+// cached user data.
 class IsolatedDataDir {
 public:
     IsolatedDataDir() {
-        constexpr const char* kVar = data_root_env_var();
+        constexpr const char* kVar = data_dir_env_var();
         const char* orig = std::getenv(kVar);
         if (orig) original_value_ = orig;
         original_set_ = (orig != nullptr);

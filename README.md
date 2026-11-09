@@ -72,15 +72,25 @@ introduces them.
 
 ## Installation
 
-The Python package needs Python 3.12 and a C++23 compiler, because pip builds
-the extension from source (no wheel is published on PyPI yet). Linux (GCC 13+
-or clang 18) and Windows (MSVC 2022) are covered by the CI workflow; macOS wheels
-are built on tags. The package installs as `ballistic-orbit` and is imported as
-`ballistic`.
+The Python package is published on PyPI as `ballistic-orbit` and is imported
+as `ballistic`:
+
+```bash
+pip install ballistic-orbit
+```
+
+Wheels are published for CPython 3.12 on Linux (x86_64, glibc 2.28 or newer),
+Windows (x86_64) and macOS (Apple silicon and Intel, macOS 11 or newer). On
+any other platform or Python version pip has no wheel to install; build from
+the repository instead, which needs a C++23 compiler (GCC 13+, clang 18 or
+MSVC 2022):
 
 ```bash
 pip install "ballistic-orbit @ git+https://github.com/nvhuynh16/ballistic#subdirectory=python"
 ```
+
+After installing, `python -m ballistic doctor` checks the installation and
+the data files.
 
 To build the C++ library, its tests and the Python module from a checkout
 you need CMake 3.20 or newer; Eigen 3.4 is downloaded automatically if it is

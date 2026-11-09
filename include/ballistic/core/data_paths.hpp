@@ -43,13 +43,22 @@ enum class DataFileType {
     LEAP_SECONDS    // IERS leap seconds (leap-seconds.list)
 };
 
-/// The platform's default directory for the library's data files (it may not exist yet):
+/// The directory for the library's data files (it may not exist yet):
+///   BALLISTIC_DATA_DIR, when set, on every platform (the directory itself);
+///   otherwise the platform's default:
 ///   Windows: %LOCALAPPDATA%\ballistic  (e.g., C:\Users\<user>\AppData\Local\ballistic;
-///            ./ballistic_data if that folder cannot be found)
+///            the LOCALAPPDATA variable if set, else the system's known folder,
+///            else ./ballistic_data)
 ///   Linux:   $XDG_DATA_HOME/ballistic, else ~/.local/share/ballistic
 ///   macOS:   ~/Library/Application Support/ballistic
 inline std::filesystem::path get_default_data_directory() {
 #ifdef _WIN32
+    if (const wchar_t* dir = _wgetenv(L"BALLISTIC_DATA_DIR"); dir && *dir) {
+        return std::filesystem::path(dir);
+    }
+    if (const wchar_t* local = _wgetenv(L"LOCALAPPDATA"); local && *local) {
+        return std::filesystem::path(local) / "ballistic";
+    }
     wchar_t* path = nullptr;
     if (SUCCEEDED(SHGetKnownFolderPath(FOLDERID_LocalAppData, 0, nullptr, &path))) {
         std::filesystem::path result(path);
@@ -58,25 +67,24 @@ inline std::filesystem::path get_default_data_directory() {
     }
     // Fallback to current directory
     return std::filesystem::current_path() / "ballistic_data";
-#elif defined(__APPLE__)
+#else
+    if (const char* dir = getenv("BALLISTIC_DATA_DIR"); dir && *dir) {
+        return std::filesystem::path(dir);
+    }
     const char* home = getenv("HOME");
     if (!home) {
         struct passwd* pw = getpwuid(getuid());
         home = pw ? pw->pw_dir : ".";
     }
+#if defined(__APPLE__)
     return std::filesystem::path(home) / "Library" / "Application Support" / "ballistic";
 #else
-    // Linux/Unix
     const char* xdg_data = getenv("XDG_DATA_HOME");
     if (xdg_data && *xdg_data) {
         return std::filesystem::path(xdg_data) / "ballistic";
     }
-    const char* home = getenv("HOME");
-    if (!home) {
-        struct passwd* pw = getpwuid(getuid());
-        home = pw ? pw->pw_dir : ".";
-    }
     return std::filesystem::path(home) / ".local" / "share" / "ballistic";
+#endif
 #endif
 }
 

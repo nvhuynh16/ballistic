@@ -108,9 +108,29 @@ int main() {
         // Hypervelocity limit with no re-emission: every shape's Cd -> 2.
         for (auto sh : {aero::Shape::Sphere, aero::Shape::FlatPlate, aero::Shape::Cylinder})
             TEST_ASSERT_NEAR(aero::free_molecular_cd(sh, 1e3, 0.0), 2.0, 1e-5);
-        // The large-argument Bessel branch joins the direct one.
-        TEST_ASSERT_NEAR(aero::scaled_bessel_i(0, 699.9999999), aero::scaled_bessel_i(0, 700.0), 1e-11);
-        TEST_ASSERT_NEAR(aero::scaled_bessel_i(1, 699.9999999), aero::scaled_bessel_i(1, 700.0), 1e-11);
+        // exp(-x) I_0(x), exp(-x) I_1(x) against 40-digit mpmath values, across
+        // both branches (series to x = 50, asymptotic above).
+        struct BesselRef { double x, i0e, i1e; };
+        for (const BesselRef& r : {BesselRef{0.1, 0.90710092578230109644, 0.045298446808809325007},
+                                   BesselRef{1.0, 0.4657596075936404365, 0.20791041534970844887},
+                                   BesselRef{7.5, 0.14831583007739550284, 0.13804121154855420249},
+                                   BesselRef{30.0, 0.073145946482237293929, 0.071916330598647554706},
+                                   BesselRef{50.0, 0.05656162664745419253, 0.055993123892895399644},
+                                   BesselRef{50.000001, 0.056561626078951446543, 0.055993123341535684485},
+                                   BesselRef{200.0, 0.02822715994911191567, 0.028156503394832917822},
+                                   BesselRef{700.0, 0.015081295651531357587, 0.015070519444716846949},
+                                   BesselRef{5000.0, 0.005642036898744588657, 0.0056414726668388859036}}) {
+            TEST_ASSERT_NEAR(aero::scaled_bessel_i(0, r.x) / r.i0e, 1.0, 5e-14);
+            TEST_ASSERT_NEAR(aero::scaled_bessel_i(1, r.x) / r.i1e, 1.0, 5e-14);
+        }
+#if !defined(_LIBCPP_VERSION)   // libc++ has no std::cyl_bessel_i
+        for (double x : {0.01, 0.5, 3.0, 12.0, 25.0, 49.9, 50.1, 120.0, 400.0, 699.0}) {
+            for (int nu : {0, 1}) {
+                const double ref = std::exp(-x) * std::cyl_bessel_i(static_cast<double>(nu), x);
+                TEST_ASSERT_NEAR(aero::scaled_bessel_i(nu, x) / ref, 1.0, 5e-14);
+            }
+        }
+#endif
     });
 
     runner.add_test("continuum_limits", []() {

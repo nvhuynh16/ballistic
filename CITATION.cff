@@ -9,7 +9,7 @@ abstract: >-
 authors:
   - family-names: "Huynh"
     given-names: "Nen Van"
-version: "0.1.0"
+version: "0.1.1"
 license: MIT
 repository-code: "https://github.com/nvhuynh16/ballistic"
 keywords:

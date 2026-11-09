@@ -18,11 +18,17 @@
 # ballistic.install_nrl_models() downloads from that release once it is
 # published (python/ballistic/nrl.py, asset names ballistic_nrl-<os>-<arch>).
 #
-# Publishing: only on a manual run with `publish` ticked, never on a tag
-# push, so a tag can be built and inspected first. The PyPI project is
-# ballistic-orbit (import name `ballistic`), and trusted publishing (this repository, workflow
-# wheels.yml, environment `pypi`) must be registered on PyPI by hand before
-# the publish job can succeed (CHANGELOG release checklist).
+# Publishing: only on a manual run, never on a tag push, so a tag can be
+# built and inspected first. Run it on the tag with `target`:
+#   testpypi  uploads to TestPyPI, then installs the package from TestPyPI on
+#             all four platforms, as a user would, and runs the Python test
+#             suite against that installation;
+#   pypi      uploads to PyPI.
+# The PyPI project is ballistic-orbit (import name `ballistic`). Trusted
+# publishing (this repository, workflow wheels.yml, environment `testpypi` on
+# test.pypi.org, `pypi` on pypi.org) must be registered on each index by hand
+# before its upload can succeed (CHANGELOG release checklist). An index never
+# accepts the same version twice.
 
 name: Wheels
 
@@ -31,10 +37,11 @@ on:
     tags: ['v*']
   workflow_dispatch:
     inputs:
-      publish:
-        description: "Upload the built wheels to PyPI"
-        type: boolean
-        default: false
+      target:
+        description: "Upload the built wheels to: none, testpypi (then test the installation), pypi"
+        type: choice
+        options: [none, testpypi, pypi]
+        default: none
 
 jobs:
   build_wheels:
@@ -49,7 +56,7 @@ jobs:
             arch: x86_64
           - os: windows-2022
             arch: AMD64
-          - os: macos-14          # Apple silicon
+          - os: macos-15          # Apple silicon (macos-14 is retired)
             arch: arm64
           - os: macos-15-intel    # Intel macOS runner (macos-13 is retired)
             arch: x86_64
@@ -90,7 +97,7 @@ jobs:
             container: ''
             asset: ballistic_nrl-windows-x86_64.dll
             file: build/nrl/ballistic_nrl.dll
-          - os: macos-14
+          - os: macos-15
             container: ''
             asset: ballistic_nrl-macos-arm64.dylib
             file: build/nrl/ballistic_nrl.dylib
@@ -169,9 +176,76 @@ jobs:
             gh release create "$tag" release/* --draft --title "$tag" --notes "$notes"
           fi
 
+  publish_testpypi:
+    needs: build_wheels
+    if: github.event_name == 'workflow_dispatch' && inputs.target == 'testpypi'
+    runs-on: ubuntu-24.04
+    environment: testpypi
+    permissions:
+      id-token: write       # trusted publishing; no API token is stored
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: wheels-*
+          path: dist
+          merge-multiple: true
+
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist
+          repository-url: https://test.pypi.org/legacy/
+
+  # Install from TestPyPI into a clean Python, as a user would (numpy from
+  # PyPI), and run the Python test suite from the checkout against that
+  # installation: no PYTHONPATH, so `import ballistic` is the installed
+  # package. Tests that need data a clean checkout lacks, or the NRL plugin,
+  # skip with their reason.
+  test_testpypi:
+    needs: publish_testpypi
+    name: TestPyPI install ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2022, macos-15, macos-15-intel]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install ballistic-orbit from TestPyPI
+        shell: bash
+        run: |
+          version=$(python -c "import tomllib; print(tomllib.load(open('python/pyproject.toml', 'rb'))['project']['version'])")
+          # A new upload can take a few minutes to appear in the index.
+          for attempt in 1 2 3 4 5 6 7 8 9 10; do
+            if python -m pip install --no-cache-dir --only-binary=:all: \
+                 --index-url https://test.pypi.org/simple/ \
+                 --extra-index-url https://pypi.org/simple/ \
+                 "ballistic-orbit==${version}"; then
+              break
+            fi
+            [ "$attempt" = 10 ] && exit 1
+            sleep 60
+          done
+          python -m pip install pytest sgp4
+          cd "$RUNNER_TEMP" && python -c "import ballistic, sys; print(ballistic.__version__, ballistic.__file__); sys.exit(ballistic.__version__ != '${version}')"
+
+      - name: pytest against the installed package
+        shell: bash
+        env:
+          PYTHONUTF8: "1"
+          BALLISTIC_STRICT_WARNINGS: "1"
+        run: |
+          python -m ballistic doctor
+          timeout 1800 python -m pytest tests/python -q -rs
+
   publish:
     needs: build_wheels
-    if: github.event_name == 'workflow_dispatch' && inputs.publish
+    if: github.event_name == 'workflow_dispatch' && inputs.target == 'pypi'
     runs-on: ubuntu-24.04
     environment: pypi
     permissions:
@@ -184,7 +258,7 @@ jobs:
           merge-multiple: true
 
       # Register the trusted publisher for the PyPI project ballistic-orbit
-      # before the first run with `publish` ticked.
+      # before the first run with target `pypi`.
       - uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: dist

@@ -49,6 +49,26 @@ class TestInitialization:
         assert ballistic.VERSION_MINOR >= 0
         assert ballistic.VERSION_PATCH >= 0
 
+    def test_version_sources_agree(self):
+        """The version is written in four files; a release needs them equal
+        (install_nrl_models downloads from the release tagged v<version>)."""
+        import re
+        from pathlib import Path
+        root = Path(__file__).resolve().parents[2]
+        found = {
+            "CMakeLists.txt": re.search(r"^\s+VERSION (\S+)$",
+                                        (root / "CMakeLists.txt").read_text(encoding="utf-8"), re.M),
+            "python/pyproject.toml": re.search(r'^version = "([^"]+)"$',
+                                               (root / "python/pyproject.toml").read_text(encoding="utf-8"), re.M),
+            "CITATION.cff": re.search(r'^version: "([^"]+)"$',
+                                      (root / "CITATION.cff").read_text(encoding="utf-8"), re.M),
+        }
+        versions = {name: m.group(1) for name, m in found.items() if m}
+        assert len(versions) == 3, found
+        expected = f"{ballistic.VERSION_MAJOR}.{ballistic.VERSION_MINOR}.{ballistic.VERSION_PATCH}"
+        assert ballistic.__version__ == expected
+        assert set(versions.values()) == {expected}, versions
+
 
 class TestEpoch:
     """Tests for Epoch class."""

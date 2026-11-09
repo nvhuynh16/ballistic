@@ -33,9 +33,7 @@ def test_readme_quickstart_runs_and_lands_on_the_precise_orbit(tmp_path):
     app.mkdir(parents=True)
     shutil.copy(REPO / "tests/data/eop/finals2000A.all", app / "finals2000A.all")
     shutil.copy(REPO / "tests/data/weather/SW-All.csv", app / "SW-All.csv")
-    env = dict(os.environ, XDG_DATA_HOME=str(tmp_path / "data"), BALLISTIC_OFFLINE="1")
-    if sys.platform == "win32":   # the data root there is %LOCALAPPDATA%
-        env["LOCALAPPDATA"] = str(tmp_path / "data")
+    env = dict(os.environ, BALLISTIC_DATA_DIR=str(app), BALLISTIC_OFFLINE="1")
     env.pop("BALLISTIC_STRICT_WARNINGS", None)   # the skipped ocean tides warn, by design
     # A fresh installation has no NRL drag models (a separate, non-commercial
     # plugin): the quick start must work without them.

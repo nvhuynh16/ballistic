@@ -8,7 +8,7 @@ build-backend = "scikit_build_core.build"
 # The distribution is published as ballistic-orbit; the import name stays
 # `ballistic` (the package directory below).
 name = "ballistic-orbit"
-version = "0.1.0"
+version = "0.1.1"
 description = "High-fidelity orbital trajectory prediction library"
 readme = "README.md"
 # The wheel contains no NRL code: NRLMSIS 2.1 (non-commercial, NRL-SOF-014-1)
@@ -74,7 +74,7 @@ test-requires = ["pytest", "numpy", "sgp4"]
 # Each wheel, installed in a fresh environment: the installation check
 # (doctor, with its SGP4 and Sentinel-1A self-tests) and the README quick
 # start. Both tests build their own data directory from the committed
-# tests/data files (conftest.py; XDG_DATA_HOME or LOCALAPPDATA), so no data
+# tests/data files (conftest.py; BALLISTIC_DATA_DIR), so no data
 # path is passed here; downloads are forbidden by BALLISTIC_OFFLINE below.
 test-command = "pytest {project}/tests/python/test_doctor.py {project}/tests/python/test_quickstart.py -q -rs"
 environment = { BALLISTIC_OFFLINE = "1" }

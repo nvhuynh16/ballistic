@@ -2140,6 +2140,8 @@ class InitConfig:
         Windows: %LOCALAPPDATA%\ballistic  (C:\Users\<user>\AppData\Local\ballistic)
         Linux:   ~/.local/share/ballistic
         macOS:   ~/Library/Application Support/ballistic
+        The environment variable BALLISTIC_DATA_DIR, when set, names the
+        directory instead (every platform).
 
     Example:
         config = ballistic.InitConfig()
@@ -4631,7 +4633,7 @@ VERSION_MAJOR: int = 0
 
 VERSION_MINOR: int = 1
 
-VERSION_PATCH: int = 0
+VERSION_PATCH: int = 1
 
 class VelocityRecordCheck:
     """
@@ -5027,6 +5029,8 @@ def get_data_directory() -> str:
         Windows: %LOCALAPPDATA%\ballistic  (C:\Users\<user>\AppData\Local\ballistic)
         Linux:   ~/.local/share/ballistic
         macOS:   ~/Library/Application Support/ballistic
+        The environment variable BALLISTIC_DATA_DIR, when set, names the
+        directory instead (every platform).
 
     Note:
         The directory may not exist yet; create it before saving files there.

@@ -689,9 +689,13 @@ enum class CVObsType { POSITION, VELOCITY, ACCELERATION };
     // hv-block split into training and held-out samples.
     const double arc_for_blocks = pos_data_ecef.empty() ? max_dur
         : (pos_data_ecef.back().first - epoch0);
-    auto [train, test] = split_hv_block(
+    // Named references, not a structured binding: the OpenMP loop below uses
+    // them, and clang 18 crashes on a structured binding inside an OpenMP region.
+    const auto split = split_hv_block(
         pos_data_ecef, epoch0, arc_for_blocks,
         dep.hv_n_blocks, dep.hv_test_blocks, dep.hv_gap_blocks);
+    const auto& train = split.first;
+    const auto& test = split.second;
 
     // If the split left no training or no test data (e.g. a very short arc with many
     // blocks), fit the first grid point on all data.

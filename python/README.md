@@ -5,6 +5,13 @@ hour (C++23 core, nanobind bindings).
 
 ## Installation
 
+```bash
+pip install ballistic-orbit   # imported as `ballistic`
+```
+
+Wheels exist for CPython 3.12 on Linux x86_64, Windows x86_64 and macOS
+(arm64, x86_64). Elsewhere, build from source:
+
 ### From Source
 
 ```bash

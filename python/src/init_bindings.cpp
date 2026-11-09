@@ -52,6 +52,8 @@ Default data directory (platform-specific):
     Windows: %LOCALAPPDATA%\ballistic  (C:\Users\<user>\AppData\Local\ballistic)
     Linux:   ~/.local/share/ballistic
     macOS:   ~/Library/Application Support/ballistic
+    The environment variable BALLISTIC_DATA_DIR, when set, names the
+    directory instead (every platform).
 
 Example:
     config = ballistic.InitConfig()
@@ -519,6 +521,8 @@ Platform-specific locations:
     Windows: %LOCALAPPDATA%\ballistic  (C:\Users\<user>\AppData\Local\ballistic)
     Linux:   ~/.local/share/ballistic
     macOS:   ~/Library/Application Support/ballistic
+    The environment variable BALLISTIC_DATA_DIR, when set, names the
+    directory instead (every platform).
 
 Note:
     The directory may not exist yet; create it before saving files there.

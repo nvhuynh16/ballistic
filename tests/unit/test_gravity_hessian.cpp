@@ -339,17 +339,18 @@ int main() {
     runner.add_test("engine of degree < 5: the m = 0 step stays inside its sqrt table", [&]() {
         // The m = 0 step reads sqrt(15); a table sized 2N + 6 was too short for
         // N <= 4 and read past its end. A degree-2 engine must equal a degree-6
-        // engine holding the same coefficients.
-        ClenshawTriangular small, large;
-        small.init(constants::earth::GM, constants::earth::RADIUS_EQUATORIAL, 2);
-        large.init(constants::earth::GM, constants::earth::RADIUS_EQUATORIAL, 6);
-        for (auto* e : {&small, &large}) {
+        // engine holding the same coefficients. (Not named small/large:
+        // <windows.h> defines `small` as a macro.)
+        ClenshawTriangular deg2, deg6;
+        deg2.init(constants::earth::GM, constants::earth::RADIUS_EQUATORIAL, 2);
+        deg6.init(constants::earth::GM, constants::earth::RADIUS_EQUATORIAL, 6);
+        for (auto* e : {&deg2, &deg6}) {
             e->set_coefficient(2, 0, -4.84e-4, 0.0);
             e->set_coefficient(2, 2, 2.4e-6, -1.4e-6);
         }
         for (const auto& pos : kFdPoints) {
-            const auto hs = small.compute_with_hessian(pos);
-            const auto hl = large.compute_with_hessian(pos);
+            const auto hs = deg2.compute_with_hessian(pos);
+            const auto hl = deg6.compute_with_hessian(pos);
             TEST_ASSERT((hs.acceleration - hl.acceleration).norm()
                         <= 1e-14 * hl.acceleration.norm());
             TEST_ASSERT((hs.hessian_ecef - hl.hessian_ecef).norm()

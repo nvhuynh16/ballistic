@@ -102,6 +102,8 @@ ballistic::initialize({});
 // Linux; other platforms use:
 //   Windows: %LOCALAPPDATA%\ballistic\<filename>
 //   macOS:   ~/Library/Application Support/ballistic/<filename>
+// The environment variable BALLISTIC_DATA_DIR, when set, names the data
+// directory itself on every platform.
 //
 // Per-propagation gravity degree is set on TrajectoryConfig::gravity_degree
 // (default 70 for LEO). All embedded EGM2008 coefficients (2-360) are loaded.
@@ -1333,7 +1335,7 @@ is_init = ballistic.is_initialized()
 status = ballistic.get_init_status()  # Returns InitResult
 
 # Version information
-version = ballistic.__version__  # e.g., "0.1.0"
+version = ballistic.__version__  # e.g., "0.1.1"
 ```
 
 #### `ballistic.initialize_with_config()`
@@ -2805,14 +2807,14 @@ sub-namespaces); default values are in `ballistic::defaults`.
 int major = ballistic::VERSION_MAJOR;  // 0
 int minor = ballistic::VERSION_MINOR;  // 1
 int patch = ballistic::VERSION_PATCH;  // 0
-std::string version = ballistic::VERSION_STRING;  // "0.1.0"
+std::string version = ballistic::VERSION_STRING;  // "0.1.1"
 ```
 
 ```python
 # Python
 import ballistic
 
-version = ballistic.__version__  # "0.1.0"
+version = ballistic.__version__  # "0.1.1"
 major = ballistic.VERSION_MAJOR
 minor = ballistic.VERSION_MINOR
 patch = ballistic.VERSION_PATCH

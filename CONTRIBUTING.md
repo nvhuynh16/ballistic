@@ -51,11 +51,15 @@ BALLISTIC_STRICT_WARNINGS=1 PYTHONPATH=./python timeout 1200 \
   passes.
 - `ctest -L claims` runs the estimator accuracy claims (about a minute),
   `ctest -L heavy` the long-running tier.
+- The tests never read your own data directory: C++ tests get
+  `BALLISTIC_DATA_DIR=tests/data/eop` from `tests/test_env.cpp` (unless the
+  variable is already set), and pytest always uses a session copy of the
+  same file (`tests/python/conftest.py`).
 - `sgp4` is a test oracle for the library's own SGP4 implementation; it is
   never a runtime dependency.
 - NRLMSIS 2.1 and HWM14 are never in the library: they are the plugin
   `ballistic_nrl` (CMake target, built by default), which every test and
-  diagnostic is pointed at (`tests/nrl_plugin_env.cpp`; pytest finds
+  diagnostic is pointed at (`tests/test_env.cpp`; pytest finds
   `build/nrl/` through `tests/python/conftest.py`). Two configurations are
   tested: with the plugin, and without it (`-DBALLISTIC_BUILD_NRL_PLUGIN=OFF`,
   as a fresh installation is). A test that needs model-based drag
@@ -95,8 +99,10 @@ before upload. The same workflow builds the NRL models plugin for each
 platform, checks that it loads (`scripts/check_nrl_plugin.py`), and on a tag
 attaches the plugins, `SHA256SUMS` and the NRLMSIS license to a draft GitHub
 release, which must be published for `ballistic.install_nrl_models()` to
-find them. Publishing to PyPI happens only on a manual run with
-`publish` ticked. No sdist is built: the Python project
+find them. Uploads happen only on a manual run on the tag:
+target `testpypi` uploads to TestPyPI, then installs from there on the
+four platforms and runs the Python tests against that installation;
+target `pypi` uploads to PyPI. No sdist is built: the Python project
 (`python/pyproject.toml`) builds the CMake project one directory up, which
 an sdist of `python/` would not contain.
 
