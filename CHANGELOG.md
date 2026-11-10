@@ -25,6 +25,13 @@ First release published on PyPI (`pip install ballistic-orbit`).
   committed EOP and space-weather files for `ballistic doctor`. A repeat
   TestPyPI upload of the same version skips files already there.
 
+### Licensing
+
+- The NRLMSIS 2.1 derived files (`nrlmsis21_full.hpp`, `nrlmsis21_parm.hpp`
+  and the script that generates the parameter header) were delivered to the
+  NRLMSIS authors at the U.S. Naval Research Laboratory, as §4b of the
+  NRL-SOF-014-1 license requires.
+
 ## [0.1.1]
 
 Published as a GitHub release (with the NRL plugins) and on TestPyPI, not on
@@ -104,10 +111,11 @@ Version 0.1.0 was never distributed.
 
 ### Release checklist
 
-- Deliver the NRLMSIS 2.1 modifications (the C++ translation
-  `nrlmsis21_full.hpp` and the converted parameter file `nrlmsis21_parm.hpp`)
-  to the authors or NRL Code 7630, U.S. Naval Research Laboratory, as §4b of
-  the NRL-SOF-014-1 license requires.
+- Deliver every change to the NRLMSIS 2.1 derived files (the C++
+  translation `nrlmsis21_full.hpp` and the converted parameter file
+  `nrlmsis21_parm.hpp`) to the authors or NRL Code 7630, U.S. Naval Research
+  Laboratory, as §4b of the NRL-SOF-014-1 license requires. The files as
+  released in 0.1.2 have been delivered.
 - Publish the draft GitHub release that `wheels.yml` creates for the tag: it
   carries the NRL plugin for each platform, `SHA256SUMS`,
   `nrlmsis2.1_license.txt` and `THIRD_PARTY_NOTICES.md`, and
