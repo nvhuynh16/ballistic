@@ -76,9 +76,8 @@ from datetime import datetime, timezone
 from typing import List, Dict
 
 _script_dir = os.path.dirname(os.path.abspath(__file__))
-_python_dir = os.path.normpath(os.path.join(_script_dir, '..', 'python'))
-if _python_dir not in sys.path:
-    sys.path.insert(0, _python_dir)
+import _source_tree  # noqa: E402
+_source_tree.use_source_tree()
 
 import numpy as np
 

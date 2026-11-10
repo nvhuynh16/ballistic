@@ -83,11 +83,10 @@ from collections import defaultdict
 
 _script_dir = os.path.dirname(os.path.abspath(__file__))
 _repo = os.path.normpath(os.path.join(_script_dir, '..'))
-_python_dir = os.path.join(_repo, 'python')
-if _python_dir not in sys.path:
-    sys.path.insert(0, _python_dir)
 if _script_dir not in sys.path:
     sys.path.insert(0, _script_dir)
+import _source_tree  # noqa: E402
+_source_tree.use_source_tree()
 
 import numpy as np
 

@@ -31,7 +31,13 @@ SP3 = REPO / "tests" / "data" / "sp3" / "champ" / "CHAMP_2005_182.sp3"
 def test_champ_drag_gate(tmp_path):
     pytest.importorskip("pandas")
     pytest.importorskip("h5py")
-    env = dict(os.environ, PYTHONPATH=str(REPO / "python"))
+    # The script imports the same ballistic as this test: a source-tree run
+    # passes PYTHONPATH=./python, CI tests the installed wheel (forcing the
+    # source tree there finds a package without its compiled _core).
+    env = dict(os.environ)
+    if env.get("PYTHONPATH"):
+        env["PYTHONPATH"] = os.pathsep.join(str(Path(p).resolve())
+                                            for p in env["PYTHONPATH"].split(os.pathsep))
     out = subprocess.run(
         [sys.executable, str(REPO / "scripts" / "validate_champ_drag.py"),
          "--sp3", str(SP3), "--mode", "propagate", "--duration", "3600",

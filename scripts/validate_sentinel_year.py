@@ -96,7 +96,6 @@ import argparse
 import glob
 import os
 import re
-import sys
 import time
 from concurrent.futures import FIRST_COMPLETED, ProcessPoolExecutor, wait
 from datetime import datetime, timedelta
@@ -105,7 +104,8 @@ import numpy as np
 
 _script_dir = os.path.dirname(os.path.abspath(__file__))
 _root = os.path.normpath(os.path.join(_script_dir, '..'))
-sys.path.insert(0, os.path.join(_root, 'python'))
+import _source_tree  # noqa: E402
+_source_tree.use_source_tree()
 
 HORIZONS_S = (900.0, 1800.0, 2700.0, 3600.0)   # default; also assumed for files without horizons_s
 # How far past its nominal day a POE file reaches (ESA: 00:59:42 UTC of the
