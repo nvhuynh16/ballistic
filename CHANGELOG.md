@@ -23,6 +23,12 @@ unchanged. Reinstall the plugin after upgrading: `ballistic.install_nrl_models(a
   `tests/data/nrlmsis/`) to half its last printed digit; the earlier check
   allowed 20% in density.
 
+### Licensing
+
+- The corrected `nrlmsis21_full.hpp` and the new reference test were
+  delivered to the NRLMSIS authors, as §4b of the NRL-SOF-014-1 license
+  requires.
+
 ## [0.1.2]
 
 First release published on PyPI (`pip install ballistic-orbit`).
@@ -132,7 +138,7 @@ Version 0.1.0 was never distributed.
   translation `nrlmsis21_full.hpp` and the converted parameter file
   `nrlmsis21_parm.hpp`) to the authors or NRL Code 7630, U.S. Naval Research
   Laboratory, as §4b of the NRL-SOF-014-1 license requires. The files as
-  released in 0.1.2 have been delivered.
+  released in 0.1.3 have been delivered.
 - Publish the draft GitHub release that `wheels.yml` creates for the tag: it
   carries the NRL plugin for each platform, `SHA256SUMS`,
   `nrlmsis2.1_license.txt` and `THIRD_PARTY_NOTICES.md`, and
