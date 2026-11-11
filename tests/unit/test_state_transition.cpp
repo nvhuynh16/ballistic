@@ -171,7 +171,11 @@ int main() {
     runner.add_test("stm_matches_central_differences_with_live_drag", []() {
         // 400 km, live NRLMSIS 2.1 on the committed weather, S1A beta. Drag's
         // position columns of da/dr are finite differences.
-        // Measured: worst column error 4.9e-8 (z column velocity rows); bound 2x.
+        // Measured: worst column error 5.6e-8 to 1.0e-7 (z column velocity
+        // rows). A 3e-5 change in density moved single columns by x0.4 to
+        // x3.5 in both directions: that is the noise of the re-propagated
+        // finite-difference reference (each perturbed run takes its own
+        // adaptive steps), not STM error. Bound 3x the largest seen.
         const StateVector x0 = dawn_dusk_start(400e3);
         const auto cfg = drag_config(x0);
         Trajectory traj = fly(x0, cfg);
@@ -179,7 +183,7 @@ int main() {
         StateTransition st(traj);
         const double err = fd_column_error(x0, cfg, st.stm(t0() + kArc));
         std::cout << "    worst relative column error " << err << "\n";
-        TEST_ASSERT(err < 1e-7);
+        TEST_ASSERT(err < 3e-7);
     });
 #endif
 

@@ -21,9 +21,13 @@
 //
 // Change notice (NRL-SOF-014-1 §4b): translated from the official Fortran
 // (msis_*.F90, NRLMSIS 2.1) to C++ on 2026-01-25; this header comment was
-// revised on 2026-07-18 and 2026-11-04. Model formulation and parameter
-// values are unchanged; output verified against the official
-// double-precision test vectors (msis2.1_test_ref_dp.txt).
+// revised on 2026-07-18 and 2026-11-04. On 2026-11-11 two constants were
+// corrected to the values in msis_constants.F90: the surface log mixing
+// ratios (LNVMR, now log() of the CIPM-2007 mole fractions; the hard-coded
+// values were off by up to 3e-4) and the anomalous-O scale height (16 g/mol).
+// Model formulation and parameter values are unchanged; every output of the
+// official double-precision test vectors (msis2.1_test_ref_dp.txt) matches to
+// half its last printed digit (tests/unit/test_nrlmsis21_reference.cpp).
 //
 // =============================================================================
 
@@ -92,16 +96,17 @@ constexpr std::array<double, 11> SPECMASS = {
 // Dry air mean mass (kg/molecule)
 constexpr double MBAR = 28.96546 / (1.0e3 * NA);
 
-// Log volume mixing ratios (pre-computed)
+// ln of the CIPM-2007 dry-air mole fractions, as in msis_constants.F90
+// (lnvmr = log(...)); std::log is not constexpr before C++26.
 constexpr std::array<double, 11> LNVMR = {
     0.0,                     // Index 0 (unused)
     0.0,                     // Mass density (dummy)
-    -0.247359612336553,      // N2: ln(0.780848)
-    -1.563296139553406,      // O2: ln(0.209390)
+    -0.24737477036295383,    // N2: ln(0.780848)
+    -1.563556737177912,      // O2: ln(0.209390)
     0.0,                     // O (dummy)
-    -12.16717628831267,      // He: ln(0.0000052)
+    -12.166851932376892,     // He: ln(0.0000052)
     0.0,                     // H (dummy)
-    -4.674383440483631,      // Ar: ln(0.009332)
+    -4.674305924822954,      // Ar: ln(0.009332)
     0.0,                     // N (dummy)
     0.0,                     // Anomalous O (dummy)
     0.0                      // NO (dummy)
@@ -127,8 +132,9 @@ constexpr double ZETA_A = 85.0;   // Reference height for active minor species
 constexpr double ZETA_GAMMA = 100.0;  // Reference height for tanh taper
 constexpr double H_GAMMA = 1.0 / 30.0;  // Inverse scale height of tanh taper
 
-// Anomalous oxygen scale height (km)
-constexpr double H_OA = 4000.0 * KB / (SPECMASS[SPEC_OA] * G0) * 1.0e-3;  // ~500 km
+// Anomalous oxygen scale height (km). The Fortran (msis_constants.F90, HOA)
+// uses a mass of exactly 16 g/mol here, not SPECMASS[SPEC_OA] = 15.9994.
+constexpr double H_OA = 4000.0 * KB / ((16.0 / (1.0e3 * NA)) * G0) * 1.0e-3;  // ~500 km
 
 // Spline indices
 constexpr int IZFMX = 13;   // Fully mixed below this spline index

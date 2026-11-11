@@ -102,6 +102,11 @@ if(TARGET test_nrl_models)   # it loads the built plugin itself, by path
     target_compile_definitions(test_nrl_models PRIVATE
         BALLISTIC_TEST_NRL_PLUGIN="$<TARGET_FILE:ballistic_nrl>")
 endif()
+ballistic_add_test(test_nrlmsis21_reference unit/test_nrlmsis21_reference.cpp nrl)
+if(TARGET test_nrlmsis21_reference)
+    target_compile_definitions(test_nrlmsis21_reference PRIVATE
+        BALLISTIC_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
+endif()
 ballistic_add_test(test_types unit/test_types.cpp)
 ballistic_add_test(test_julian_date unit/test_julian_date.cpp)
 ballistic_add_test(test_force_jacobians unit/test_force_jacobians.cpp)

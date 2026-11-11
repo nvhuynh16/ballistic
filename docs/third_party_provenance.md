@@ -40,9 +40,11 @@ by hand:
 ## Official test vectors kept in `external/`
 
 - `msis2.1_test_in.txt` / `msis2.1_test_ref_dp.txt`: NRLMSIS 2.1
-  double-precision reference outputs shipped with the official package; the
-  C++ translation is validated against these (see the atmosphere validation
-  tests).
+  double-precision reference outputs shipped with the official package. The
+  reference output is also committed, unmodified, as
+  `tests/data/nrlmsis/msis2.1_test_ref_dp.txt`, and
+  `tests/unit/test_nrlmsis21_reference.cpp` checks the C++ translation
+  against every value to half its last printed digit.
 - `hwm14_repo/`: a mirror of the official HWM14 package including
   `README.txt` and the check values (`checkhwm14.f90` outputs).
 

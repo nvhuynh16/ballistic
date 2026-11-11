@@ -6,6 +6,18 @@ uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- NRL plugin: two constants in the NRLMSIS 2.1 translation differed from the
+  official `msis_constants.F90`. The surface log mixing ratios of N2, O2, He
+  and Ar were hard-coded values off by up to 3e-4 (now `log()` of the
+  CIPM-2007 mole fractions), and the anomalous-oxygen scale height used
+  15.9994 g/mol instead of 16. Total mass density changes by at most 7e-5
+  below 300 km and 3e-4 above 500 km. A new test checks every value of the
+  official reference output (`msis2.1_test_ref_dp.txt`, now under
+  `tests/data/nrlmsis/`) to half its last printed digit; the earlier check
+  allowed 20% in density.
+
 ## [0.1.2]
 
 First release published on PyPI (`pip install ballistic-orbit`).

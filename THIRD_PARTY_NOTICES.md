@@ -61,7 +61,8 @@ The statement required by §4c of the license agreement:
     unmodified; only the storage format changed.
 - **Model output**: the C++ translation reproduces the official
   double-precision test vectors (`msis2.1_test_ref_dp.txt` from the NRL
-  package).
+  package, committed unmodified as `tests/data/nrlmsis/`): every value to
+  half its last printed digit (`tests/unit/test_nrlmsis21_reference.cpp`).
 - **Upstream**: https://map.nrl.navy.mil/map/pub/nrl/NRLMSIS/NRLMSIS2.1/
 - **Citation**: Emmert, J.T., et al. (2022), NRLMSIS 2.1 (nitric oxide
   added to NRLMSIS 2.0), JGR Space Physics, doi:10.1029/2022JA030896; Emmert, J.T., et al. (2021), "NRLMSIS 2.0: A
