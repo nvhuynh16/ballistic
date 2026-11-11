@@ -6,6 +6,11 @@ uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.1.3]
+
+Corrects the NRLMSIS 2.1 translation in the NRL plugin; the library itself is
+unchanged. Reinstall the plugin after upgrading: `ballistic.install_nrl_models(accept_license=True)`.
+
 ### Fixed
 
 - NRL plugin: two constants in the NRLMSIS 2.1 translation differed from the

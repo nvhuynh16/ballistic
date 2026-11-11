@@ -8,7 +8,7 @@ build-backend = "scikit_build_core.build"
 # The distribution is published as ballistic-orbit; the import name stays
 # `ballistic` (the package directory below).
 name = "ballistic-orbit"
-version = "0.1.2"
+version = "0.1.3"
 description = "High-fidelity orbital trajectory prediction library"
 readme = "README.md"
 # The wheel contains no NRL code: NRLMSIS 2.1 (non-commercial, NRL-SOF-014-1)

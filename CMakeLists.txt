@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.20)
 project(Ballistic
-    VERSION 0.1.2
+    VERSION 0.1.3
     DESCRIPTION "High-fidelity orbital trajectory prediction library"
     LANGUAGES CXX
 )
